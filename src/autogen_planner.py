@@ -24,34 +24,18 @@ class MessageWithAttachments(Message):
 class PredictedSayCommandWithAttachments(PredictedSayCommand):
     response: MessageWithAttachments
 
-def get_image(bytes: InputFile):
-    img = Image.open(io.BytesIO(bytes.content))
-    wpercent = (500 / float(img.size[0]))
-    hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((500, hsize), Image.Resampling.LANCZOS)
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    encoded_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    return encoded_image
 
 class AutoGenPlanner(Planner):
-    def __init__(self, llm_config, build_group_chat: Callable[[TurnContext, AppTurnState, Agent], GroupChat | None]) -> None:
+    def __init__(self, llm_config, build_group_chat: Callable[[TurnContext, AppTurnState, Agent], GroupChat | None], messageBuilder: Optional[Callable[[TurnContext, AppTurnState], str]] = None) -> None:
         self.llm_config = llm_config
         self.build_group_chat = build_group_chat
+        self.messageBuilder = messageBuilder
         super().__init__()
 
     async def begin_task(self, context, state: AppTurnState):
         return await self.continue_task(context, state)
 
-    async def continue_task(self, context, state: AppTurnState):
-        image_content_type = None
-        image_bytes = None
-        if state.temp.input_files:
-            if isinstance(state.temp.input_files[0][0],InputFile) and (state.temp.input_files[0][0].content_type == 'image/jpeg' or state.temp.input_files[0][0].content_type == 'image/png'):
-                image_content_type = state.temp.input_files[0][0].content_type
-                # image_bytes = base64.b64encode(state.temp.input_files[0][0].content).decode('utf-8')
-                image_bytes = get_image(state.temp.input_files[0][0])
-                
+    async def continue_task(self, context, state: AppTurnState):               
         user_proxy = TeamsUserProxy(
             name="User",
             system_message="A human admin. This agent is a proxy for the user. This agent can help answer questions too.",
@@ -79,10 +63,8 @@ class AutoGenPlanner(Planner):
         if is_existing_group_chat and state.conversation.message_history is not None:
             await manager.a_resume(messages=state.conversation.message_history)
 
-        chat_result = await user_proxy.a_initiate_chat(recipient=manager, message=
-f"""{context.activity.text}
-{f'Here is the threat model image: <img data:{image_content_type};base64,{image_bytes}>' if image_bytes else 'You currently do not have a threat model image. Ask the user you provide you one.'}
-        """, clear_history=False, summary_method="reflection_with_llm")
+        incoming_message = self.messageBuilder(context, state) if self.messageBuilder is not None else context.activity.text
+        chat_result = await user_proxy.a_initiate_chat(recipient=manager, message=incoming_message, clear_history=False, summary_method="reflection_with_llm")
         chat_history = chat_result.chat_history[:]
         for chat in chat_history:
             if chat.get("content") == "":
