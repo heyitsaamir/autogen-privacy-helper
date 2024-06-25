@@ -19,6 +19,7 @@ from teams.input_file import InputFile
 from teams.teams_attachment_downloader.teams_attachment_downloader_options import TeamsAttachmentDownloaderOptions
 from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
+from botbuilder.azure import BlobStorage, BlobStorageSettings
 
 from config import Config
 from state import AppTurnState
@@ -41,8 +42,12 @@ def download_file_and_return_contents(download_url):
     return response.text
 
 
-storage = MemoryStorage()
-
+# storage = MemoryStorage()
+blob_settings = BlobStorageSettings(
+        connection_string=config.BLOB_CONNECTION_STRING,
+        container_name=config.BLOB_CONTAINER_NAME
+    )
+storage = BlobStorage(blob_settings)
 
 def first(the_iterable, condition=lambda x: True) -> Union[None, Any]:
     for i in the_iterable:
@@ -67,7 +72,7 @@ def build_image_string(image_bytes_as_str: str, image_content_type: str):
 
 def message_builder(context: TurnContext, state: AppTurnState) -> str:
     image_str = None
-    if state.temp.input_files and state.templ.input_files[0]:
+    if state.temp.input_files and state.temp.input_files[0]:
         if isinstance(state.temp.input_files[0][0], InputFile) and (state.temp.input_files[0][0].content_type == 'image/jpeg' or state.temp.input_files[0][0].content_type == 'image/png'):
             image_str = build_image_string(get_image(
                 state.temp.input_files[0][0]), state.temp.input_files[0][0].content_type)

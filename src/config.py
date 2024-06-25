@@ -19,3 +19,5 @@ class Config:
     OPENAI_KEY = os.environ.get("OPENAI_KEY", "")
     AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY", "")
     AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+    BLOB_CONNECTION_STRING = os.environ.get("BLOB_CONNECTION_STRING", "")
+    BLOB_CONTAINER_NAME = os.environ.get("BLOB_CONTAINER_NAME", "")

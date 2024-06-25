@@ -1,4 +1,3 @@
-import base64, io
 from botbuilder.schema import Attachment
 from botbuilder.core import CardFactory, TurnContext
 from teams.ai.prompts import Message
@@ -14,7 +13,6 @@ nest_asyncio.apply()
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from teams.input_file import InputFile
-import PIL.Image as Image
 
 @dataclass_json
 @dataclass
