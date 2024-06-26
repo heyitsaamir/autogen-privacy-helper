@@ -98,8 +98,7 @@ class ThreatModelReviewerGroup:
             Provide details on the quality of the threat model based on the answers given by the answerer agent.
             Evaluate the answers based on the following spec criteria:
             {self.threat_model_spec}
-
-            Rate each area on a scale of 1 to 5 as well.
+            For each spec criteria that is not met, provide some action items on how to improve the threat model to meet the requirement.
             """,
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
