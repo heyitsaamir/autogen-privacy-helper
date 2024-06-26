@@ -5,9 +5,14 @@ Licensed under the MIT License.
 Description: initialize the app and listen for `message` activitys
 """
 
-import os, sys, traceback, base64, io, PIL.Image as Image
+import os
+import sys
+import traceback
+import base64
+import io
+import PIL.Image as Image
 from typing import Union, Any
-from autogen import AssistantAgent, GroupChat, Agent
+from autogen import AssistantAgent, GroupChat, Agent, ConversableAgent, register_function
 from botbuilder.schema import Activity, ActivityTypes
 
 from botbuilder.core import TurnContext, MemoryStorage
@@ -32,21 +37,14 @@ if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
     )
 
 
-llm_config = {"model": "gpt-4o", "api_key": os.environ["OPENAI_KEY"]}
-# downloads the file and returns the contents in a string
-
-
-def download_file_and_return_contents(download_url):
-    import requests
-    response = requests.get(download_url)
-    return response.text
+llm_config = {"model": "gpt-4-turbo", "api_key": os.environ["OPENAI_KEY"]}
 
 
 # storage = MemoryStorage()
 blob_settings = BlobStorageSettings(
-        connection_string=config.BLOB_CONNECTION_STRING,
-        container_name=config.BLOB_CONTAINER_NAME
-    )
+    connection_string=config.BLOB_CONNECTION_STRING,
+    container_name=config.BLOB_CONTAINER_NAME
+)
 storage = BlobStorage(blob_settings)
 
 def first(the_iterable, condition=lambda x: True) -> Union[None, Any]:
@@ -54,12 +52,15 @@ def first(the_iterable, condition=lambda x: True) -> Union[None, Any]:
         if condition(i):
             return i
 
-
 def get_image(bytes: InputFile):
     img = Image.open(io.BytesIO(bytes.content))
-    wpercent = (500 / float(img.size[0]))
+    wpercent = (400 / float(img.size[0]))
     hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((500, hsize), Image.Resampling.LANCZOS)
+    img = img.resize((400, hsize))
+    return img
+
+def get_image_encoded(bytes: InputFile):
+    img = get_image(bytes)
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
     encoded_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
@@ -67,25 +68,34 @@ def get_image(bytes: InputFile):
 
 
 def build_image_string(image_bytes_as_str: str, image_content_type: str):
-    return f'<img data:{image_content_type};base64,{image_bytes_as_str}>'
+    # return f'<img data:{image_content_type};base64,{image_bytes_as_str}>'
+    return f'data:{image_content_type};base64,{image_bytes_as_str}'
 
 
-def message_builder(context: TurnContext, state: AppTurnState) -> str:
-    image_str = None
-    if state.temp.input_files and state.temp.input_files[0]:
-        if isinstance(state.temp.input_files[0][0], InputFile) and (state.temp.input_files[0][0].content_type == 'image/jpeg' or state.temp.input_files[0][0].content_type == 'image/png'):
-            image_str = build_image_string(get_image(
-                state.temp.input_files[0][0]), state.temp.input_files[0][0].content_type)
-    return f"""{context.activity.text}
-{f'Here is the threat model image: {image_str}' if image_str else 'I currently do not have a threat model image. Ask me to provide you one.'}
-        """
+class ImageReasoningAgent(MultimodalConversableAgent):
+    def __init__(self, img: Image.Image | None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.img = img
+
+        def add_image_to_messages(messages):
+            if self.img:
+                messages = messages.copy()
+                messages.append({"content": [{
+                    "type": "image_url",
+                    "image_url": {
+                        "url": self.img,
+                    }
+                }], "role": "user"})
+            return messages
+        self.hook_lists["process_all_messages_before_reply"].append(
+            add_image_to_messages)
 
 
 threat_model_spec = f"""
-1. All nodes (boxes in suddounded by a black border) should be inside a red boundary.
+1. All nodes (boxes or nodes surrounded by a black border) should be inside a red boundary. Are there any nodes outside the red boundary?
 2. It should be clear to tell what each red boundary is.
 3. All arrows should be labeled.
-4. All labels for the arrows should have numbers. These numbers indicate the order in which the flow happens.
+4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens.  Are you able to understand the sequental flow of the data? Can you describe the data flow from one node to another?
 """
 
 
@@ -94,37 +104,44 @@ def build_group_chat(context: TurnContext, state: AppTurnState, user_agent: Agen
     questioner_agent = AssistantAgent(
         name="Questioner",
         system_message=f"""You are a questioner agent.
-        Your role is to ask questions for regarding a threat model to evaluate the privacy of a system:
-        {threat_model_spec}
-        Ask a single question at a given time.
-        If you do not have any more questions, say so.
+Your role is to ask questions for regarding a threat model to evaluate the privacy of a system:
+{threat_model_spec}
+Ask a single question at a given time.
+If you do not have any more questions, say so.
 
-        When asking the question, you should include the spec requirement that the question is trying to answer. For example:
-        <question> (for spec requirement 1)
+When asking the question, you should include the spec requirement that the question is trying to answer. For example:
+<QUESTION specRequirement=1>
+Your question
+</QUESTION>
 
-        If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
+If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
         """,
         llm_config={"config_list": [llm_config],
                     "timeout": 60, "temperature": 0},
     )
-    answerer_agent = MultimodalConversableAgent(
+
+    img = None
+    if state.temp.input_files and state.temp.input_files[0]:
+        if isinstance(state.temp.input_files[0][0], InputFile) and (state.temp.input_files[0][0].content_type == 'image/jpeg' or state.temp.input_files[0][0].content_type == 'image/png'):
+            img = get_image(state.temp.input_files[0][0])
+
+    answerer_agent = ImageReasoningAgent(
         name="Threat_Model_Answerer",
         system_message=f"""You are an answerer agent.
-        Your role is to answer questions based on the threat model picture.
-        If you do not have a diagram, ask the user to provide one.
-        If you do not understand something from the diagram, you may ask a clarifying question.
-        Answer the questions as clearly and concisely as possible.
+Your role is to answer questions based on the threat model picture.
+If you do not have a threat model, ask the user to provide one.
+You will *never* speculate or infer anything that is not in the threat model picture.
+Answer the questions as clearly and concisely as possible.
 
-        DO NOT under any circumstance answer a question that is not based on threat model picture.
+If you do not understand something from the threat model picture, you may ask a clarifying question. In case of a clarifying question for the user, put your exact question between tags like this:
+<CLARIFYING_QUESTION>
+your clarifying question
+</CLARIFYING_QUESTION>
         """,
         llm_config={"config_list": [llm_config],
                     "timeout": 60, "temperature": 0},
+        img=img
     )
-    # if spec_url:
-    #     d_retrieve_content = answerer_agent.register_for_llm(
-    #         description="Retrieve the contents of the product spec", api_style="function"
-    #     )(read_spec)
-    #     answerer_agent.register_for_execution()(d_retrieve_content)
 
     answer_evaluator_agent = AssistantAgent(
         name="Overall_spec_evaluator",
@@ -182,7 +199,7 @@ app = Application[AppTurnState](
         storage=storage,
         adapter=TeamsAdapter(config),
         ai=AIOptions(planner=AutoGenPlanner(llm_config=llm_config,
-                     build_group_chat=build_group_chat, messageBuilder=message_builder)),
+                     build_group_chat=build_group_chat)),
         file_downloaders=[downloader],
     ),
 )

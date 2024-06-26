@@ -62,7 +62,7 @@ class AutoGenPlanner(Planner):
             await manager.a_resume(messages=state.conversation.message_history)
 
         incoming_message = self.messageBuilder(context, state) if self.messageBuilder is not None else context.activity.text
-        chat_result = await user_proxy.a_initiate_chat(recipient=manager, message=incoming_message, clear_history=False, summary_method="reflection_with_llm")
+        chat_result = await user_proxy.a_initiate_chat(recipient=manager, message=incoming_message, clear_history=False)
         chat_history = chat_result.chat_history[:]
         for chat in chat_history:
             if chat.get("content") == "":
