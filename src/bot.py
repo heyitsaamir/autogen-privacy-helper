@@ -10,7 +10,7 @@ import sys
 import traceback
 from botbuilder.schema import Activity, ActivityTypes
 
-from botbuilder.core import TurnContext
+from botbuilder.core import TurnContext, MemoryStorage
 from teams import Application, ApplicationOptions, TeamsAdapter
 from teams.ai import AIOptions
 from teams.ai.actions import ActionTypes, ActionTurnContext
@@ -24,6 +24,20 @@ from config import Config
 from state import AppTurnState
 
 config = Config()
+def build_llm_config():
+    if "OPENAI_KEY" in os.environ:
+        config = {"model": "gpt-4-turbo", "api_key": os.environ["OPENAI_KEY"]}
+    elif "AZURE_OPENAI_KEY" in os.environ and "AZURE_OPENAI_ENDPOINT" in os.environ:
+        config = {
+            "model": "my-gpt-4-deployment",
+            "api_version": "2024-02-01",
+            "api_type": "azure",
+            "api_key": os.environ['AZURE_OPENAI_API_KEY'],
+            "base_url": os.environ['AZURE_OPENAI_ENDPOINT'],
+        }
+    else:
+        raise ValueError("Neither OPENAI_KEY nor AZURE_OPENAI_KEY environment variables are set.")
+    return config
 
 if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
     raise RuntimeError(
@@ -31,14 +45,14 @@ if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
     )
 
 
-llm_config = {"model": "gpt-4-turbo", "api_key": os.environ["OPENAI_KEY"]}
+llm_config = build_llm_config()
 
-# storage = MemoryStorage()
-blob_settings = BlobStorageSettings(
-    connection_string=config.BLOB_CONNECTION_STRING,
-    container_name=config.BLOB_CONTAINER_NAME
-)
-storage = BlobStorage(blob_settings)
+storage = MemoryStorage()
+# blob_settings = BlobStorageSettings(
+#     connection_string=config.BLOB_CONNECTION_STRING,
+#     container_name=config.BLOB_CONTAINER_NAME
+# )
+# storage = BlobStorage(blob_settings)
 
 threat_model_reviewer_group = ThreatModelReviewerGroup(llm_config=llm_config)
 
