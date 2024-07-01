@@ -43,7 +43,7 @@ app = Application[AppTurnState](
     ApplicationOptions(
         bot_app_id=config.APP_ID,
         storage=storage,
-        adapter=TeamsAdapter(config),
+        adapter=adapter,
         ai=AIOptions(planner=AutoGenPlanner(llm_config=llm_config,
                      build_group_chat=threat_model_reviewer_group.group_chat_builder)),
         file_downloaders=[downloader],
