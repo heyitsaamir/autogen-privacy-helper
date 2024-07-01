@@ -1,17 +1,17 @@
 
 import io
-import PIL.Image as Image
 from typing import Union
+import PIL.Image as Image
 from autogen import AssistantAgent, GroupChat, Agent
+from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 
 from botbuilder.core import TurnContext
 from teams.input_file import InputFile
-from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 
 from state import AppTurnState
 
-def get_image(bytes: InputFile):
-    img = Image.open(io.BytesIO(bytes.content))
+def get_image(input_file: InputFile):
+    img = Image.open(io.BytesIO(input_file.content))
     wpercent = (400 / float(img.size[0]))
     hsize = int((float(img.size[1]) * float(wpercent)))
     img = img.resize((400, hsize))
@@ -19,7 +19,7 @@ def get_image(bytes: InputFile):
 
 
 class ImageReasoningAgent(MultimodalConversableAgent):
-    def __init__(self, img: Image.Image | None, *args, **kwargs):
+    def __init__(self, img: Union[Image.Image, None], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.img = img
 
@@ -37,7 +37,7 @@ class ImageReasoningAgent(MultimodalConversableAgent):
             add_image_to_messages)
 
 class ThreatModelReviewerGroup:
-    def __init__(self, llm_config, threat_model_spec: str = f"""
+    def __init__(self, llm_config, threat_model_spec: str = """
 1. All nodes (boxes or nodes surrounded by a black border) should be inside a red boundary. Are there any nodes outside the red boundary?
 2. It should be clear to tell what each red boundary is.
 3. All arrows should be labeled.
@@ -51,17 +51,17 @@ class ThreatModelReviewerGroup:
         questioner_agent = AssistantAgent(
             name="Questioner",
             system_message=f"""You are a questioner agent.
-    Your role is to ask questions for regarding a threat model to evaluate the privacy of a system:
-    {self.threat_model_spec}
-    Ask a single question at a given time.
-    If you do not have any more questions, say so.
+Your role is to ask questions for regarding a threat model to evaluate the privacy of a system:
+{self.threat_model_spec}
+Ask a single question at a given time.
+If you do not have any more questions, say so.
 
-    When asking the question, you should include the spec requirement that the question is trying to answer. For example:
-    <QUESTION specRequirement=1>
-    Your question
-    </QUESTION>
+When asking the question, you should format your question in this format:
+<QUESTION specRequirement=1>
+Your question
+</QUESTION>
 
-    If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
+If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
             """,
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
@@ -74,16 +74,16 @@ class ThreatModelReviewerGroup:
 
         answerer_agent = ImageReasoningAgent(
             name="Threat_Model_Answerer",
-            system_message=f"""You are an answerer agent.
-    Your role is to answer questions based on the threat model picture.
-    If you do not have a threat model, ask the user to provide one.
-    You will *never* speculate or infer anything that is not in the threat model picture.
-    Answer the questions as clearly and concisely as possible.
+            system_message="""You are an answerer agent.
+Your role is to answer questions based on the threat model picture.
+If you do not have a threat model, ask the user to provide one.
+You will *never* speculate or infer anything that is not in the threat model picture.
+Answer the questions as clearly and concisely as possible.
 
-    If you do not understand something from the threat model picture, you may ask a clarifying question. In case of a clarifying question for the user, put your exact question between tags like this:
-    <CLARIFYING_QUESTION>
-    your clarifying question
-    </CLARIFYING_QUESTION>
+If you do not understand something from the threat model picture, you may ask a clarifying question. In case of a clarifying question for the user, put your exact question between tags in this format:
+<CLARIFYING_QUESTION>
+your clarifying question
+</CLARIFYING_QUESTION>
             """,
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
@@ -93,12 +93,12 @@ class ThreatModelReviewerGroup:
         answer_evaluator_agent = AssistantAgent(
             name="Overall_spec_evaluator",
             system_message=f"""You are an answer reviewer agent.
-            Your role is to evaluate the answers given by the Threat_Model_Answerer agent.
-            You are only called if the Questioner agent has no more questions to ask.
-            Provide details on the quality of the threat model based on the answers given by the answerer agent.
-            Evaluate the answers based on the following spec criteria:
-            {self.threat_model_spec}
-            For each spec criteria that is not met, provide some action items on how to improve the threat model to meet the requirement.
+Your role is to evaluate the answers given by the Threat_Model_Answerer agent.
+You are only called if the Questioner agent has no more questions to ask.
+Provide details on the quality of the threat model based on the answers given by the answerer agent.
+Evaluate the answers based on the following spec criteria:
+{self.threat_model_spec}
+For each spec criteria that is not met, provide some action items on how to improve the threat model to meet the requirement.
             """,
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
@@ -113,7 +113,8 @@ class ThreatModelReviewerGroup:
             if last_speaker == questioner_agent:
                 last_message = groupchat.messages[-1]
                 content = last_message.get("content")
-                if content is not None and content.lower() == "no_questions":
+                if content is not None and "NO_QUESTIONS" in content:
+                    print("No questions, so moving to answer evaluator")
                     return answer_evaluator_agent
                 else:
                     return answerer_agent
@@ -121,6 +122,7 @@ class ThreatModelReviewerGroup:
             if last_speaker == answerer_agent:
                 last_message = groupchat.messages[-1]
                 if last_message.get("content") == "<CLARIFYING_QUESTION>":
+                    print("Clarifying question, so sending question to user")
                     return user_agent
                 else:
                     return questioner_agent

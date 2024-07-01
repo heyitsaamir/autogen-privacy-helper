@@ -24,35 +24,14 @@ from config import Config
 from state import AppTurnState
 
 config = Config()
-def build_llm_config():
-    if "OPENAI_KEY" in os.environ:
-        config = {"model": "gpt-4-turbo", "api_key": os.environ["OPENAI_KEY"]}
-    elif "AZURE_OPENAI_KEY" in os.environ and "AZURE_OPENAI_ENDPOINT" in os.environ:
-        config = {
-            "model": "my-gpt-4-deployment",
-            "api_version": "2024-02-01",
-            "api_type": "azure",
-            "api_key": os.environ['AZURE_OPENAI_API_KEY'],
-            "base_url": os.environ['AZURE_OPENAI_ENDPOINT'],
-        }
-    else:
-        raise ValueError("Neither OPENAI_KEY nor AZURE_OPENAI_KEY environment variables are set.")
-    return config
 
-if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
+llm_config = config.build_llm_config()
+if llm_config is None:
     raise RuntimeError(
-        "Missing environment variables - please check that OPENAI_KEY or AZURE_OPENAI_KEY is set."
+        "Unable to build LLM config - please check that OPENAI_KEY or AZURE_OPENAI_KEY is set."
     )
 
-
-llm_config = build_llm_config()
-
 storage = MemoryStorage()
-# blob_settings = BlobStorageSettings(
-#     connection_string=config.BLOB_CONNECTION_STRING,
-#     container_name=config.BLOB_CONTAINER_NAME
-# )
-# storage = BlobStorage(blob_settings)
 
 threat_model_reviewer_group = ThreatModelReviewerGroup(llm_config=llm_config)
 
@@ -73,7 +52,7 @@ app = Application[AppTurnState](
 
 
 @app.ai.action(ActionTypes.SAY_COMMAND)
-async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachments], state: AppTurnState):
+async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachments], _state: AppTurnState):
     content = (
         context.data.response.content
         if context.data.response and context.data.response.content
