@@ -25,7 +25,7 @@ async def on_messages(req: web.Request) -> web.Response:
 
     return web.Response(status=HTTPStatus.OK)
 
-@routes.post('/ping')
+@routes.get('/ping')
 async def ping(req: web.Request) -> web.Response:
     return web.Response(text='pong')
 
