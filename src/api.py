@@ -25,9 +25,9 @@ async def on_messages(req: web.Request) -> web.Response:
 
     return web.Response(status=HTTPStatus.OK)
 
-@routes.get('/ping')
-async def ping(req: web.Request) -> web.Response:
-    return web.Response(text='pong')
+@routes.get('/api/healthz')
+async def ping(_req: web.Request) -> web.Response:
+    return web.Response(status=HTTPStatus.OK, text='pong')
 
 
 api = web.Application(middlewares=[aiohttp_error_middleware])
