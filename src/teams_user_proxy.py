@@ -1,5 +1,6 @@
+from typing import Literal
+import re
 from autogen import ConversableAgent
-from typing import Optional, Dict, Callable, Literal, List
 
 class TeamsUserProxy(ConversableAgent):
     def __init__(self,
@@ -34,6 +35,10 @@ class TeamsUserProxy(ConversableAgent):
             question = last_message
 
         if (is_question):
+            if question is not None:
+                match = re.search(r"<CLARIFYING_QUESTION>(.*?)</CLARIFYING_QUESTION>", question, re.DOTALL)
+                if match:
+                    question = match.group(1).strip()
             self.question_for_user = question
         else:
             self.question_for_user = None

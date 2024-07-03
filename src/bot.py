@@ -5,7 +5,6 @@ Licensed under the MIT License.
 Description: initialize the app and listen for `message` activitys
 """
 
-import os
 import sys
 import traceback
 from botbuilder.schema import Activity, ActivityTypes
@@ -17,7 +16,7 @@ from teams.ai.actions import ActionTypes, ActionTurnContext
 from teams.teams_attachment_downloader.teams_attachment_downloader import TeamsAttachmentDownloader
 from teams.teams_attachment_downloader.teams_attachment_downloader_options import TeamsAttachmentDownloaderOptions
 from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
-from botbuilder.azure import BlobStorage, BlobStorageSettings
+# from botbuilder.azure import BlobStorage, BlobStorageSettings
 from threat_model_reviewer_group import ThreatModelReviewerGroup
 
 from config import Config

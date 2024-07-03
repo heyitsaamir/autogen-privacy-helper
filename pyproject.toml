@@ -14,14 +14,11 @@ teams-ai = "^1.1.0"
 python-dotenv = "^1.0.1"
 aiohttp = "3.9.5"
 pyautogen = "0.2.28"
-nest_asyncio = "1.6.0"
 botbuilder-azure = "^4.15.1"
+pillow = "10.3.0"
 
 [tool.poetry.extras]
 lmm = ["pyautogen"]
-
-[tool.poetry.group.autogen.dependencies]
-pillow = "10.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

@@ -25,6 +25,10 @@ async def on_messages(req: web.Request) -> web.Response:
 
     return web.Response(status=HTTPStatus.OK)
 
+@routes.post('/ping')
+async def ping(req: web.Request) -> web.Response:
+    return web.Response(text='pong')
+
 
 api = web.Application(middlewares=[aiohttp_error_middleware])
 api.add_routes(routes)

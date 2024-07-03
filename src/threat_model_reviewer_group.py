@@ -1,7 +1,6 @@
-
 import io
 from typing import Union
-import PIL.Image as Image
+from PIL import Image
 from autogen import AssistantAgent, GroupChat, Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 
@@ -110,9 +109,9 @@ For each spec criteria that is not met, provide some action items on how to impr
         def custom_speaker_selection_func(
             last_speaker: Agent, groupchat: GroupChat
         ) -> Union[Agent, str, None]:
+            last_message = groupchat.messages[-1]
+            content = last_message.get("content")
             if last_speaker == questioner_agent:
-                last_message = groupchat.messages[-1]
-                content = last_message.get("content")
                 if content is not None and "NO_QUESTIONS" in content:
                     print("No questions, so moving to answer evaluator")
                     return answer_evaluator_agent
@@ -121,7 +120,7 @@ For each spec criteria that is not met, provide some action items on how to impr
                 
             if last_speaker == answerer_agent:
                 last_message = groupchat.messages[-1]
-                if last_message.get("content") == "<CLARIFYING_QUESTION>":
+                if content is not None and "<CLARIFYING_QUESTION>" in content:
                     print("Clarifying question, so sending question to user")
                     return user_agent
                 else:

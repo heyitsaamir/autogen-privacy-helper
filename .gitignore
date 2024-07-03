@@ -15,3 +15,4 @@ appPackage/build
 
 .cache/
 .python-version
+.conda
