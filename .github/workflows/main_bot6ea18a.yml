@@ -57,6 +57,10 @@ jobs:
       id-token: write #This is required for requesting the JWT
 
     steps:
+      - name: 'install cairo'
+        run: |
+          sudo apt-get install libcairo2-dev
+          
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
@@ -65,9 +69,6 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      - name: 'install cairo'
-        run: |
-          brew install cairo
       
       - name: Login to Azure
         uses: azure/login@v1
