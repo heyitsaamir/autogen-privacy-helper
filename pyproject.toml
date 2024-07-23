@@ -16,6 +16,8 @@ aiohttp = "3.9.5"
 pyautogen = "0.2.28"
 botbuilder-azure = "^4.15.1"
 pillow = "10.3.0"
+drawsvg = {extras = ["all"], version = "^2.4.0"}
+svgpathtools = "^1.6.1"
 
 [tool.poetry.extras]
 lmm = ["pyautogen"]

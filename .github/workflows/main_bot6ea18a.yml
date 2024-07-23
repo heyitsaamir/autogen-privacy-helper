@@ -56,11 +56,7 @@ jobs:
     permissions:
       id-token: write #This is required for requesting the JWT
 
-    steps:
-      - name: 'install cairo'
-        run: |
-          sudo apt-get install libcairo2-dev
-          
+    steps:          
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:

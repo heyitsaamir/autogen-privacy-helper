@@ -16,3 +16,6 @@ appPackage/build
 .cache/
 .python-version
 .conda
+
+*.png
+*.svg
