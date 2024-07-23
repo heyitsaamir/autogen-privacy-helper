@@ -67,7 +67,7 @@ jobs:
 
       - name: 'install cairo'
         run: |
-          pip install cairo
+          brew install cairo
       
       - name: Login to Azure
         uses: azure/login@v1
