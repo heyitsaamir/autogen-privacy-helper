@@ -18,6 +18,11 @@ class Config:
     OPENAI_KEY = os.environ.get("OPENAI_KEY", "")
     AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY", "")
     AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+    AZURE_SEARCH_SERVICE_ENDPOINT = os.environ.get("AZURE_SEARCH_SERVICE_ENDPOINT")
+    AZURE_SEARCH_INDEX_NAME = os.environ.get("AZURE_SEARCH_INDEX_NAME")
+    AZURE_SEARCH_API_KEY = os.environ.get("AZURE_SEARCH_API_KEY")
+    AZURE_SEMANTIC_SEARCH_CONFIG = os.environ.get("AZURE_SEMANTIC_SEARCH_CONFIG")
+    
 
     def build_llm_config(self):
         if self.OPENAI_KEY:

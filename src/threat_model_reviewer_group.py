@@ -8,6 +8,7 @@ from botbuilder.core import TurnContext
 from teams.input_file import InputFile
 
 from state import AppTurnState
+from rag_agents import setup_rag_assistant
 
 def get_image(input_file: InputFile):
     img = Image.open(io.BytesIO(input_file.content))
@@ -102,8 +103,10 @@ For each spec criteria that is not met, provide some action items on how to impr
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
+        
+        rag_assistant = setup_rag_assistant(llm_config=self.llm_config)
 
-        for agent in [questioner_agent, answerer_agent, answer_evaluator_agent]:
+        for agent in [questioner_agent, answerer_agent, answer_evaluator_agent, rag_assistant]:
             group_chat_agents.append(agent)
 
         def custom_speaker_selection_func(
@@ -124,7 +127,7 @@ For each spec criteria that is not met, provide some action items on how to impr
                     print("Clarifying question, so sending question to user")
                     return user_agent
                 else:
-                    return questioner_agent
+                    return 'auto'
             return 'auto'
 
         groupchat = GroupChat(
@@ -133,9 +136,10 @@ For each spec criteria that is not met, provide some action items on how to impr
             max_round=100,
             speaker_selection_method=custom_speaker_selection_func,
             allowed_or_disallowed_speaker_transitions={
-                user_agent: [questioner_agent],
+                user_agent: [rag_assistant],
+                rag_assistant: [user_agent],
                 questioner_agent: [answerer_agent, answer_evaluator_agent],
-                answerer_agent: [user_agent, questioner_agent],
+                answerer_agent: [user_agent, rag_assistant],
                 answer_evaluator_agent: [user_agent]
             },
             speaker_transitions_type="allowed"

@@ -9,13 +9,15 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "<3.13,>=3.9"
-teams-ai = "^1.1.0"
+python = "3.12.4"
+teams-ai = "^1.2.1"
 python-dotenv = "^1.0.1"
 aiohttp = "3.9.5"
-pyautogen = "0.2.28"
+pyautogen = {version="0.2.28", extras=["llm", "retrievechat"]}
 botbuilder-azure = "^4.15.1"
 pillow = "10.3.0"
+azure-search-documents = "^11.5.0"
+azure-core = "^1.30.2"
 
 [tool.poetry.extras]
 lmm = ["pyautogen"]
