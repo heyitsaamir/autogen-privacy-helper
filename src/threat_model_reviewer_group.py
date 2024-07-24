@@ -128,6 +128,12 @@ For each spec criteria that is not met, provide some action items on how to impr
                     return user_agent
                 else:
                     return 'auto'
+                
+            ## If the last speaker is the rag_assistant and it has just provided a tool response,
+            ## then we want to convert that into a user message.
+            if last_speaker == rag_assistant and content and last_message.get("tool_responses"):
+                return rag_assistant
+            
             return 'auto'
 
         groupchat = GroupChat(
