@@ -7,7 +7,7 @@ name: Build and deploy Python app to Azure Web App - bot6ea18a
 on:
   push:
     branches:
-      - aamirj/containerize
+      - main
   workflow_dispatch:
 
 jobs:
