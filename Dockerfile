@@ -23,9 +23,9 @@ ENV VIRTUAL_ENV=/app/.venv \
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
-COPY src src
-# COPY .env.combined src/.env
-WORKDIR src
+COPY src app
+COPY .env.combined app/.env
+WORKDIR app
 
 EXPOSE 3978
 
