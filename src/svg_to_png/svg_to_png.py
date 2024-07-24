@@ -6,6 +6,8 @@ from .lib.GenericDataFlow import GenericDataFlow
 from .lib.GenericProcess import GenericProcess
 from .lib.GenericTrustBorderBoundary import GenericTrustBorderBoundary
 from .lib.GenericTrustLineBoundary import GenericTrustLineBoundary
+from .lib.GenericDataStore import GenericDataStore
+from .lib.GenericExternalInteractor import GenericExternalInteractor
 from .lib.utils import get_bbox
 
 
@@ -52,21 +54,20 @@ def draw_element(el: Element, d):
     any_type_properties = properties.findall(build_tag(ARRAY_XMLNS, "anyType"))
     type = any_type_properties[0][0].text
     name = el.get('custom_key') if el.get('custom_key') else get_element_name(el)
-    if generic_type_id == "GE.P":
-        height, width, left, top = get_shape_details(el)
-        shape = GenericProcess(generic_type_id, type, name, height, width, left, top)
-    elif generic_type_id == "GE.A":
-        height, width, left, top = get_shape_details(el)
-        shape = FreeTextAnnotation(generic_type_id, type, name, height, width, left, top)
-    elif generic_type_id == "GE.DF":
-        handleX, handleY, sourceX, sourceY, targetX, targetY = get_curve_details(el)
-        shape = GenericDataFlow(generic_type_id, type, name, handleX, handleY, sourceX, sourceY, targetX, targetY)
+    if generic_type_id == "GE.DS":
+        shape = GenericDataStore(generic_type_id, type, name, *get_shape_details(el))
+    elif generic_type_id == "GE.EI":
+        shape = GenericExternalInteractor(generic_type_id, type, name, *get_shape_details(el))
+    elif generic_type_id == "GE.P":
+        shape = GenericProcess(generic_type_id, type, name, *get_shape_details(el))
     elif generic_type_id == "GE.TB.B":
-        height, width, left, top = get_shape_details(el)
-        shape = GenericTrustBorderBoundary(generic_type_id, type, name, height, width, left, top)
+        shape = GenericTrustBorderBoundary(generic_type_id, type, name, *get_shape_details(el))
+    elif generic_type_id == "GE.A":
+        shape = FreeTextAnnotation(generic_type_id, type, name, *get_shape_details(el))
+    elif generic_type_id == "GE.DF":
+        shape = GenericDataFlow(generic_type_id, type, name, *get_curve_details(el))
     elif generic_type_id == "GE.TB.L":
-        handleX, handleY, sourceX, sourceY, targetX, targetY = get_curve_details(el)
-        shape = GenericTrustLineBoundary(generic_type_id, type, name, handleX, handleY, sourceX, sourceY, targetX, targetY)
+        shape = GenericTrustLineBoundary(generic_type_id, type, name, *get_curve_details(el))
     else:
         shape = None
         
@@ -158,7 +159,7 @@ def convert_svg_to_png(file: str = None, svg_content: str = None, out_file="resu
         bounding_box.add_padding(10)
         width, height = bounding_box.get_size()
         d.set_render_size(width, height)
-        d.view_box = (0,0) + (width, height)
+        d.view_box = (bounding_box.xmin,bounding_box.ymin) + (width, height)
         file_name = out_file
         d.save_svg(f'{file_name}.svg')
         d.save_png(f'{file_name}.png')
