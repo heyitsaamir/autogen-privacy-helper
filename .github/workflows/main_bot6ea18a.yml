@@ -27,7 +27,7 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - run: |
-          docker build -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
+          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
           docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
 
   deploy:
