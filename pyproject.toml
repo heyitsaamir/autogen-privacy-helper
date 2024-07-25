@@ -21,9 +21,6 @@ azure-core = "^1.30.2"
 drawsvg = {extras = ["all"], version = "^2.4.0"}
 svgpathtools = "^1.6.1"
 
-[tool.poetry.extras]
-lmm = ["pyautogen"]
-
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 pylint = "^2.17.4"

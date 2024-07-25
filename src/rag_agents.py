@@ -81,12 +81,22 @@ def setup_rag_assistant(llm_config):
             "task": "qa",
             "vector_db": db,
         },
-        llm_config=llm_config,
     )
 
     assistant = AssistantAgent(
         name="questionassistant",
-        system_message="You are a helpful assistant in getting answers to the user's questions. If a user asks a question then you should retrieve content calling retrieve_content for the answer and then summarize the result.",
+        system_message="You are a helpful assistant in getting answers to the user's questions. Use",
+    )
+    
+    internal_assistant = AssistantAgent(
+        name="rag_executor",
+        system_message="Executes the rag",
+        llm_config=llm_config,
+    )
+    
+    rag_assistant = AssistantAgent(
+        name="rag_assistant",
+        system_message="Use the retrieve_content function to get content for asking user questions.",
         llm_config=llm_config,
     )
     
@@ -107,9 +117,21 @@ def setup_rag_assistant(llm_config):
             _context = {"problem": message, "n_results": n_results}
             ret_msg = ragproxyagent.message_generator(ragproxyagent, None, _context)
         return ret_msg if ret_msg else message
+    
+    def trigger(sender): 
+        return sender not in [rag_assistant, internal_assistant]
+    
+    assistant.register_nested_chats([
+        {
+            "recipient": rag_assistant,
+            "sender": internal_assistant,
+            "summary_method": "last_msg",
+            "summary_prompt": "Use the retrieve_content function to get content for asking user questions.",
+            "max_turns": 2
+        },
+    ], trigger=trigger)
 
-    for caller in [assistant]:
-        register_function(retrieve_content, caller=caller, executor=caller, description="Retrieve content for asking user questions.")
+    register_function(retrieve_content, caller=rag_assistant, executor=internal_assistant, description="Retrieve content for asking user questions.")
         # d_retrieve_content = caller.register_for_llm({
         #     description="Retrieve content for asking user questions.", api_style="function"
         # })(retrieve_content)
