@@ -8,9 +8,11 @@ from botbuilder.core import TurnContext
 from teams.input_file import InputFile
 
 from state import AppTurnState
+from svg_to_png.svg_to_png import convert_svg_to_png
 
-def get_image(input_file: InputFile):
-    img = Image.open(io.BytesIO(input_file.content))
+
+def get_image(input_file: Union[InputFile, str]):
+    img = Image.open(io.BytesIO(input_file.content) if isinstance(input_file, InputFile) else input_file)
     wpercent = (400 / float(img.size[0]))
     hsize = int((float(img.size[1]) * float(wpercent)))
     img = img.resize((400, hsize))
@@ -18,22 +20,30 @@ def get_image(input_file: InputFile):
 
 
 class ImageReasoningAgent(MultimodalConversableAgent):
-    def __init__(self, img: Union[Image.Image, None], *args, **kwargs):
+    def __init__(self, img: Union[Image.Image, None], extra_details: Union[str, None] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.img = img
+        self.extra_details = extra_details
 
         def add_image_to_messages(messages):
             if self.img:
                 messages = messages.copy()
-                messages.append({"content": [{
+                img_message = [{
                     "type": "image_url",
                     "image_url": {
                         "url": self.img,
                     }
-                }], "role": "user"})
+                }]
+                if self.extra_details:
+                    img_message.append({
+                        "type": "text",
+                        "text": f"Here are some helpful labels: {self.extra_details}. Use these to help answer the questions."
+                    })
+                messages.append({"content": img_message, "role": "user"})
             return messages
         self.hook_lists["process_all_messages_before_reply"].append(
             add_image_to_messages)
+
 
 class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
@@ -44,7 +54,7 @@ class ThreatModelReviewerGroup:
 """):
         self.llm_config = llm_config
         self.threat_model_spec = threat_model_spec
-        
+
     def group_chat_builder(self, _context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
         group_chat_agents = [user_agent]
         questioner_agent = AssistantAgent(
@@ -67,10 +77,22 @@ If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
         )
 
         img = None
+        img_details = None
         if state.temp.input_files and state.temp.input_files[0]:
-            if isinstance(state.temp.input_files[0][0], InputFile) and (state.temp.input_files[0][0].content_type == 'image/jpeg' or state.temp.input_files[0][0].content_type == 'image/png'):
-                img = get_image(state.temp.input_files[0][0])
-
+            if isinstance(state.temp.input_files[0], InputFile):
+                if state.temp.input_files[0].content_type == 'image/jpeg' or state.temp.input_files[0].content_type == 'image/png':
+                    img = get_image(state.temp.input_files[0])
+                elif state.temp.input_files[0].content_type == 'application/vnd.microsoft.teams.file.download.info':
+                    # make sure it's a threat model file
+                    if state.temp.input_files[0].content and isinstance(state.temp.input_files[0].content, bytes):
+                        if state.temp.input_files[0].content.startswith(b"<ThreatModel"):
+                            svg_str = state.temp.input_files[0].content.decode("utf-8")
+                            key_label_tuples = convert_svg_to_png(svg_content=svg_str, out_file="threat_model")
+                            img = get_image("threat_model.png")
+                            if key_label_tuples:
+                                for key, label in key_label_tuples:
+                                    img_details = img_details + f"\n{key}: {label}" if img_details else f"{key}: {label}"
+                            
         answerer_agent = ImageReasoningAgent(
             name="Threat_Model_Answerer",
             system_message="""You are an answerer agent.
@@ -86,7 +108,8 @@ your clarifying question
             """,
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
-            img=img
+            img=img,
+            extra_details=img_details
         )
 
         answer_evaluator_agent = AssistantAgent(
@@ -117,7 +140,7 @@ For each spec criteria that is not met, provide some action items on how to impr
                     return answer_evaluator_agent
                 else:
                     return answerer_agent
-                
+
             if last_speaker == answerer_agent:
                 last_message = groupchat.messages[-1]
                 if content is not None and "<CLARIFYING_QUESTION>" in content:

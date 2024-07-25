@@ -17,35 +17,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python version
-        uses: actions/setup-python@v1
+      - name: Lowercase the repo name
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+      - uses: azure/docker-login@v1
         with:
-          python-version: '3.11'
+          login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Create and start virtual environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-
-      - name: Install poetry
-        run: |
-          pip install poetry
-      
-      - name: Install dependencies
-        run: poetry install
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
-
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
-
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v3
-        with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
+      - run: |
+          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -57,18 +40,8 @@ jobs:
       id-token: write #This is required for requesting the JWT
 
     steps:
-      - name: 'install cairo'
-        run: |
-          sudo apt-get install libcairo2-dev
-          
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v3
-        with:
-          name: python-app
-
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
-
+      - name: Lowercase the repo name
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
       
       - name: Login to Azure
         uses: azure/login@v1
@@ -83,4 +56,5 @@ jobs:
         with:
           app-name: 'bot6ea18a'
           slot-name: 'Production'
+          images: ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
           

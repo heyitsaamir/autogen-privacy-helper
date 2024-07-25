@@ -9,4 +9,4 @@ from api import api
 from config import Config
 
 if __name__ == "__main__":
-    web.run_app(api, host="localhost", port=Config.PORT)
+    web.run_app(api, host="0.0.0.0", port=Config.PORT)
