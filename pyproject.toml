@@ -18,6 +18,8 @@ botbuilder-azure = "^4.15.1"
 pillow = "10.3.0"
 azure-search-documents = "^11.5.0"
 azure-core = "^1.30.2"
+drawsvg = {extras = ["all"], version = "^2.4.0"}
+svgpathtools = "^1.6.1"
 
 [tool.poetry.extras]
 lmm = ["pyautogen"]
