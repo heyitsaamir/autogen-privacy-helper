@@ -74,30 +74,30 @@ class AzureAISearch(VectorDB):
 
 def setup_rag_assistant(llm_config):
     db = AzureAISearch()
-    ragproxyagent = RetrieveUserProxyAgent(
-        name="ragproxyagent",
+    rag_proxy_agent = RetrieveUserProxyAgent(
+        name="rag_proxy_agent",
         human_input_mode="NEVER",
         retrieve_config={
             "task": "qa",
             "vector_db": db,
         },
     )
-
-    assistant = AssistantAgent(
-        name="questionassistant",
-        system_message="You are a helpful assistant in getting answers to the user's questions. Use",
-    )
     
-    internal_assistant = AssistantAgent(
+    rag_executor_agent = AssistantAgent(
         name="rag_executor",
-        system_message="Executes the rag",
+        system_message="Executes the rag using the retrieve_content function.",
         llm_config=llm_config,
     )
     
     rag_assistant = AssistantAgent(
         name="rag_assistant",
-        system_message="Use the retrieve_content function to get content for asking user questions.",
+        system_message="Use the retrieve_content function to get content for asking user questions. Then summarizes the result.",
         llm_config=llm_config,
+    )
+
+    assistant = AssistantAgent(
+        name="questionassistant",
+        system_message="You are a helpful assistant in getting answers to the user's questions.",
     )
     
     def retrieve_content(
@@ -107,33 +107,30 @@ def setup_rag_assistant(llm_config):
         ],
         n_results: Annotated[int, "number of results"] = 3,
     ) -> str:
-        ragproxyagent.n_results = n_results  # Set the number of results to be retrieved.
+        rag_proxy_agent.n_results = n_results  # Set the number of results to be retrieved.
         # Check if we need to update the context.
-        update_context_case1, update_context_case2 = ragproxyagent._check_update_context(message)
-        if (update_context_case1 or update_context_case2) and ragproxyagent.update_context:
-            ragproxyagent.problem = message if not hasattr(ragproxyagent, "problem") else ragproxyagent.problem
-            _, ret_msg = ragproxyagent._generate_retrieve_user_reply(message)
+        update_context_case1, update_context_case2 = rag_proxy_agent._check_update_context(message)
+        if (update_context_case1 or update_context_case2) and rag_proxy_agent.update_context:
+            rag_proxy_agent.problem = message if not hasattr(rag_proxy_agent, "problem") else rag_proxy_agent.problem
+            _, ret_msg = rag_proxy_agent._generate_retrieve_user_reply(message)
         else:
             _context = {"problem": message, "n_results": n_results}
-            ret_msg = ragproxyagent.message_generator(ragproxyagent, None, _context)
+            ret_msg = rag_proxy_agent.message_generator(rag_proxy_agent, None, _context)
         return ret_msg if ret_msg else message
     
     def trigger(sender): 
-        return sender not in [rag_assistant, internal_assistant]
+        return sender not in [rag_assistant, rag_executor_agent]
     
     assistant.register_nested_chats([
         {
             "recipient": rag_assistant,
-            "sender": internal_assistant,
+            "sender": rag_executor_agent,
             "summary_method": "last_msg",
             "summary_prompt": "Use the retrieve_content function to get content for asking user questions.",
             "max_turns": 2
         },
     ], trigger=trigger)
 
-    register_function(retrieve_content, caller=rag_assistant, executor=internal_assistant, description="Retrieve content for asking user questions.")
-        # d_retrieve_content = caller.register_for_llm({
-        #     description="Retrieve content for asking user questions.", api_style="function"
-        # })(retrieve_content)
+    register_function(retrieve_content, caller=rag_assistant, executor=rag_executor_agent, description="Retrieve content for asking user questions.")
         
     return assistant
