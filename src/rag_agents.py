@@ -91,13 +91,14 @@ def setup_rag_assistant(llm_config):
     
     rag_assistant = AssistantAgent(
         name="rag_assistant",
-        system_message="Use the retrieve_content function to get content for asking user questions. Then summarizes the result.",
+        system_message="Use the retrieve_content function to get content for asking user questions. Then summarizes the result. If the result from retrieve_content is empty, then say you do not know",
         llm_config=llm_config,
     )
 
     assistant = AssistantAgent(
-        name="questionassistant",
-        system_message="You are a helpful assistant in getting answers to the user's questions.",
+        name="System_Details_Answerer",
+        system_message="""You are a system details answerer agent.
+Your role is is to answer answers about the overall system. You are able to look up details about the system.""",
     )
     
     def retrieve_content(

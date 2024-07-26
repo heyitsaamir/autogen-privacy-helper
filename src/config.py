@@ -26,7 +26,7 @@ class Config:
 
     def build_llm_config(self):
         if self.OPENAI_KEY:
-            autogen_llm_config = {"model": "gpt-4o", "api_key": self.OPENAI_KEY}
+            autogen_llm_config = {"model": "gpt-4o-mini", "api_key": self.OPENAI_KEY}
         elif self.AZURE_OPENAI_KEY and self.AZURE_OPENAI_ENDPOINT:
             autogen_llm_config = {
                 "model": "my-gpt-4-deployment",

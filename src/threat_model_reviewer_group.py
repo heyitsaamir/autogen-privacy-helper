@@ -52,6 +52,7 @@ class ThreatModelReviewerGroup:
 2. It should be clear to tell what each red boundary is.
 3. All arrows should be labeled.
 4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens.  Are you able to understand the sequental flow of the data? Can you describe the data flow from one node to another?
+5. All nodes should correspond to a valid service or data store in the system. Are you able to verify that all the nodes exist in the system?
 """):
         self.llm_config = llm_config
         self.threat_model_spec = threat_model_spec
@@ -95,17 +96,19 @@ If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
                                     img_details = img_details + f"\n{key}: {label}" if img_details else f"{key}: {label}"
                             
         answerer_agent = ImageReasoningAgent(
-            name="Threat_Model_Answerer",
-            system_message="""You are an answerer agent.
+            name="Threat_Model_Image_Answerer",
+            system_message="""You are an threat model answerer agent.
 Your role is to answer questions based on the threat model picture.
 If you do not have a threat model, ask the user to provide one.
 You will *never* speculate or infer anything that is not in the threat model picture.
+The threat model indicates the flow of data in a bigger system. You do not have any context about the system, but you can answer questions regarding the data flow present in the threat model.
 Answer the questions as clearly and concisely as possible.
 
 If you do not understand something from the threat model picture, you may ask a clarifying question. In case of a clarifying question for the user, put your exact question between tags in this format:
 <CLARIFYING_QUESTION>
 your clarifying question
 </CLARIFYING_QUESTION>
+If you need additional details from the system, you can ask the system_details_assistant agent as well.
             """,
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
@@ -134,7 +137,7 @@ For each spec criteria that is not met, provide some action items on how to impr
 
         def custom_speaker_selection_func(
             last_speaker: Agent, groupchat: GroupChat
-        ) -> Union[Agent, str, None]:
+        ) -> Union[Agent, str, list[Agent], None]:
             last_message = groupchat.messages[-1]
             content = last_message.get("content")
             if last_speaker == questioner_agent:
@@ -142,7 +145,7 @@ For each spec criteria that is not met, provide some action items on how to impr
                     print("No questions, so moving to answer evaluator")
                     return answer_evaluator_agent
                 else:
-                    return answerer_agent
+                    return [answerer_agent, rag_assistant]
 
             if last_speaker == answerer_agent:
                 last_message = groupchat.messages[-1]
@@ -150,7 +153,7 @@ For each spec criteria that is not met, provide some action items on how to impr
                     print("Clarifying question, so sending question to user")
                     return user_agent
                 else:
-                    return 'auto'
+                    return questioner_agent
                 
             # ## If the last speaker is the rag_assistant and it has just provided a tool response,
             # ## then we want to convert that into a user message.
@@ -165,10 +168,10 @@ For each spec criteria that is not met, provide some action items on how to impr
             max_round=100,
             speaker_selection_method=custom_speaker_selection_func,
             allowed_or_disallowed_speaker_transitions={
-                user_agent: [rag_assistant],
-                rag_assistant: [user_agent],
-                questioner_agent: [answerer_agent, answer_evaluator_agent],
-                answerer_agent: [user_agent, rag_assistant],
+                user_agent: [questioner_agent],
+                questioner_agent: [answerer_agent, rag_assistant, answer_evaluator_agent],
+                rag_assistant: [questioner_agent],
+                answerer_agent: [questioner_agent, user_agent],
                 answer_evaluator_agent: [user_agent]
             },
             speaker_transitions_type="allowed"

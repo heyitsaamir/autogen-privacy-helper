@@ -4646,13 +4646,13 @@ dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
 
 [[package]]
 name = "teams-ai"
-version = "1.2.2"
+version = "1.3.0"
 description = "SDK focused on building AI based applications for Microsoft Teams."
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "teams_ai-1.2.2-py3-none-any.whl", hash = "sha256:1914b5dccf12385a8aa493e10ea02a81555afa174d73fd10ecfd501541753ab3"},
-    {file = "teams_ai-1.2.2.tar.gz", hash = "sha256:0eba0002735f412a0d101a3b2044c227ceebe3641744b1f48ad07e236dd8a3b4"},
+    {file = "teams_ai-1.3.0-py3-none-any.whl", hash = "sha256:1079485ac5ce7beb3f277d977a38f979f6a0f8712243a5e51a17e6325cc7ec18"},
+    {file = "teams_ai-1.3.0.tar.gz", hash = "sha256:278a0a63e085a33bd75e5f341a3aa2a8c859e9d85e87a47f10f6aaf0277eec1f"},
 ]
 
 [package.dependencies]
