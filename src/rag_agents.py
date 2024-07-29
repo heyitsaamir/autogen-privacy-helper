@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Union, Annotated, Tuple
 from autogen.agentchat.contrib.vectordb.base import QueryResults, VectorDB, Document
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
@@ -5,6 +6,17 @@ from autogen import AssistantAgent, register_function
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from config import Config
+
+def build_config(suffix: str):
+    # Get the current date
+    current_date = datetime.now()
+
+    # Format the date as YYYYMMDD
+    formatted_date = current_date.strftime("%Y%m%d")
+
+    # Construct the final string
+    return f"{formatted_date}-{suffix}"
+    
 
 class AzureAISearch(VectorDB):
     def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True):
@@ -52,9 +64,10 @@ class AzureAISearch(VectorDB):
     
     def _search(self, query: str):
         search_endpoint = Config.AZURE_SEARCH_SERVICE_ENDPOINT
-        index_name = Config.AZURE_SEARCH_INDEX_NAME
+        # index name is YYYYMMDD-1-home-index
+        index_name = build_config("1-home-index")
         api_key = Config.AZURE_SEARCH_API_KEY
-        semantic_search_config = Config.AZURE_SEMANTIC_SEARCH_CONFIG
+        semantic_search_config = build_config("1-home-index-sc")
         
         if not api_key:
             raise ValueError("No Azure Search API key provided.")
@@ -91,7 +104,10 @@ def setup_rag_assistant(llm_config):
     
     rag_assistant = AssistantAgent(
         name="rag_assistant",
-        system_message="Use the retrieve_content function to get content for asking user questions. Then summarizes the result. If the result from retrieve_content is empty, then say you do not know",
+        system_message="""
+Use the retrieve_content function to get content for asking user questions.
+Then summarizes the result. If the result from retrieve_content is empty, then say you do not know.
+""",
         llm_config=llm_config,
     )
 
@@ -99,12 +115,13 @@ def setup_rag_assistant(llm_config):
         name="System_Details_Answerer",
         system_message="""You are a system details answerer agent.
 Your role is is to answer answers about the overall system. You are able to look up details about the system.""",
+        description="A system details answerer agent that can answer questions about the overall system.",
     )
     
     def retrieve_content(
         message: Annotated[
             str,
-            "Refined message which keeps the original meaning and can be used to retrieve content for code generation and question answering.",
+            "Refined message which can be used to retrieve details about the system. Use precise language to get the best results.",
         ],
         n_results: Annotated[int, "number of results"] = 3,
     ) -> str:

@@ -19,7 +19,6 @@ def get_image(input_file: Union[InputFile, str]):
     img = img.resize((400, hsize))
     return img
 
-
 class ImageReasoningAgent(MultimodalConversableAgent):
     def __init__(self, img: Union[Image.Image, None], extra_details: Union[str, None] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -50,8 +49,8 @@ class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
 1. All nodes (boxes or nodes surrounded by a black border) should be inside a red boundary. Are there any nodes outside the red boundary?
 2. It should be clear to tell what each red boundary is.
-3. All arrows should be labeled.
-4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens.  Are you able to understand the sequental flow of the data? Can you describe the data flow from one node to another?
+3. All arrows should be labeled. Are there any arrows between nodes that are not labeled?
+4. All labels for the arrows between should have sequential numbers. These numbers indicate the order in which the flow happens.  Are you able to understand the sequental flow of the data? Can you describe the data flow from one node to another?
 5. All nodes should correspond to a valid service or data store in the system. Are you able to verify that all the nodes exist in the system?
 """):
         self.llm_config = llm_config
@@ -72,8 +71,10 @@ When asking the question, you should format your question in this format:
 Your question
 </QUESTION>
 
+To ask if nodes are for a valid service or data store in the system, ask one question at a time for each node. Be specific (eg. use the node name in the question).
 If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
             """,
+            description="A questioner agent that can ask questions based on a threat model picture. It can ask questions about the threat model from the given picture or about the broader system.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
@@ -108,12 +109,12 @@ If you do not understand something from the threat model picture, you may ask a 
 <CLARIFYING_QUESTION>
 your clarifying question
 </CLARIFYING_QUESTION>
-If you need additional details from the system, you can ask the system_details_assistant agent as well.
             """,
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
             img=img,
-            extra_details=img_details
+            extra_details=img_details,
+            description="A answerer agent that can exclusively answer questions based on a threat model picture."
         )
 
         answer_evaluator_agent = AssistantAgent(
@@ -126,6 +127,7 @@ Evaluate the answers based on the following spec criteria:
 {self.threat_model_spec}
 For each spec criteria that is not met, provide some action items on how to improve the threat model to meet the requirement.
             """,
+            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer agent.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
