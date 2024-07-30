@@ -74,7 +74,7 @@ def draw_element(el: Element, d, icons: dict):
     if shape:
         shape.convert_to_svg(d)
 
-def convert_svg_to_png(file: str = None, svg_content: str = None):
+def convert_svg_to_png(file: str = None, svg_content: str = None, out_file="result"):
     if not file and not svg_content:
         raise Exception("Either file or svg_content should be provided")
     
@@ -160,10 +160,8 @@ def convert_svg_to_png(file: str = None, svg_content: str = None):
         width, height = bounding_box.get_size()
         d.set_render_size(width, height)
         d.view_box = (bounding_box.xmin,bounding_box.ymin) + (width, height)
-        file_name = tab_header[0].text if tab_header[0].text else "result"
+        file_name = out_file
         d.save_svg(f'{file_name}.svg')
         d.save_png(f'{file_name}.png')
         
         return key_label_tuples
-
-# convert_svg_to_png(file='/Users/aamirjawaid/Downloads/MSTeamsThreatModel.tm7')
