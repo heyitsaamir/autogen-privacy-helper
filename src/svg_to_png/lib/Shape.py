@@ -9,7 +9,7 @@ class SVG(draw.DrawingBasicElement):
         self.children.append(animate_element)
     
 class Shape:
-    def __init__(self, category, type, name: str, height, width, left, top):
+    def __init__(self, category, type, name: str, icons: dict, height, width, left, top):
         self.category = category
         self.type = type
         self.name = name
@@ -17,6 +17,7 @@ class Shape:
         self.width = int(width) - 10
         self.left = int(left) + 5
         self.top = int(top) + 5
+        self.icons = icons
     
     def add_text(self, d):
         if len(self.name) == 0:
