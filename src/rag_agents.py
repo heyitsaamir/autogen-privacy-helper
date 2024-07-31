@@ -5,14 +5,17 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProx
 from autogen import AssistantAgent, register_function
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
+from azure.core.exceptions import ResourceNotFoundError
 from config import Config
 
-def build_config(suffix: str):
+def build_config(suffix: str, previous_day: bool = False):
     # Get the current date
     current_date = datetime.now()
 
     # Format the date as YYYYMMDD
-    formatted_date = current_date.strftime("%Y%m%d")
+    day = current_date.day - 1 if previous_day else current_date.day
+    formatted_date_without_day = current_date.strftime("%Y%m")
+    formatted_date = f"{formatted_date_without_day}{day:02d}"
 
     # Construct the final string
     return f"{formatted_date}-{suffix}"
@@ -62,31 +65,64 @@ class AzureAISearch(VectorDB):
             documents_all.append(documents)
         return documents_all
     
-    def _search(self, query: str):
+    def _search(self, query: str, retry_with_previous_day: bool = False):
         search_endpoint = Config.AZURE_SEARCH_SERVICE_ENDPOINT
         # index name is YYYYMMDD-1-home-index
-        index_name = build_config("1-home-index")
+        index_name = build_config("1-home-index", previous_day=retry_with_previous_day)
         api_key = Config.AZURE_SEARCH_API_KEY
-        semantic_search_config = build_config("1-home-index-sc")
+        semantic_search_config = build_config("1-home-index-sc", previous_day=retry_with_previous_day)
         
         if not api_key:
             raise ValueError("No Azure Search API key provided.")
         
         search_client = SearchClient(search_endpoint, index_name, AzureKeyCredential(api_key))
-        raw_response = search_client.search(search_text=query,
+        try:
+            raw_response = search_client.search(search_text=query,
                 query_type="semantic",
                 semantic_configuration_name=semantic_search_config,
                 query_caption="extractive",
                 query_answer="extractive|count-3",
                 top=5)
-        response = list(raw_response)
+            response = list(raw_response)
+        except Exception as e:
+            if retry_with_previous_day is False and isinstance(e, ResourceNotFoundError):
+                print(f"Resource not found error. Retrying with previous day.")
+                return self._search(query, retry_with_previous_day=True)
+            raise e
+            
         output = []
         for result in response:
             output.append(result)
         return output
+    
+class RagExecutorAgent(AssistantAgent):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def check_if_rag_completed(**kwargs):
+            message = kwargs.get("message")
+            self = kwargs.get("sender")
+            recipient = kwargs.get("recipient")
+            if message == "NOT_A_TOOL_RESPONSE":
+                # get the last message from the recipient
+                last_message = recipient.last_message(self)
+                # copy the last_message object
+                new_message = last_message.copy()
+                # get or create a context dict
+                context = new_message.get("context", {})
+                # set the content to the last message content
+                context["should_end"] = True
+                new_message["context"] = context
+                return new_message
+            return message
+        self.hook_lists["process_message_before_send"].append(
+            check_if_rag_completed)
 
 def setup_rag_assistant(llm_config):
     db = AzureAISearch()
+    def did_retrieve_content(msg):
+        should_end = msg.get("context", {}).get("should_end", False)
+        return should_end is True
     rag_proxy_agent = RetrieveUserProxyAgent(
         name="rag_proxy_agent",
         human_input_mode="NEVER",
@@ -96,19 +132,10 @@ def setup_rag_assistant(llm_config):
         },
     )
     
-    rag_executor_agent = AssistantAgent(
+    rag_executor_agent = RagExecutorAgent(
         name="rag_executor",
         system_message="Executes the rag using the retrieve_content function.",
-        llm_config=llm_config,
-    )
-    
-    rag_assistant = AssistantAgent(
-        name="rag_assistant",
-        system_message="""
-Use the retrieve_content function to get content for asking user questions.
-Then summarizes the result. If the result from retrieve_content is empty, then say you do not know.
-""",
-        llm_config=llm_config,
+        default_auto_reply="NOT_A_TOOL_RESPONSE",
     )
 
     assistant = AssistantAgent(
@@ -116,6 +143,8 @@ Then summarizes the result. If the result from retrieve_content is empty, then s
         system_message="""You are a system details answerer agent.
 Your role is is to answer answers about the overall system. You are able to look up details about the system.""",
         description="A system details answerer agent that can answer questions about the overall system.",
+        llm_config=llm_config,
+        is_termination_msg=did_retrieve_content
     )
     
     def retrieve_content(
@@ -136,19 +165,17 @@ Your role is is to answer answers about the overall system. You are able to look
             ret_msg = rag_proxy_agent.message_generator(rag_proxy_agent, None, _context)
         return ret_msg if ret_msg else message
     
-    def trigger(sender): 
-        return sender not in [rag_assistant, rag_executor_agent]
+    def trigger(sender):
+        return sender not in [rag_executor_agent] # To prevent the assistant from triggering itself
     
     assistant.register_nested_chats([
         {
-            "recipient": rag_assistant,
+            "recipient": assistant,
             "sender": rag_executor_agent,
             "summary_method": "last_msg",
-            "summary_prompt": "Use the retrieve_content function to get content for asking user questions.",
-            "max_turns": 2
         },
     ], trigger=trigger)
 
-    register_function(retrieve_content, caller=rag_assistant, executor=rag_executor_agent, description="Retrieve content for asking user questions.")
+    register_function(retrieve_content, caller=assistant, executor=rag_executor_agent, description="Retrieve content for asking user questions.")
         
     return assistant
