@@ -23,6 +23,8 @@ from threat_model_reviewer_group import ThreatModelReviewerGroup
 from config import Config
 from state import AppTurnState
 
+import azure.identity
+
 config = Config()
 def build_llm_config():
     if "OPENAI_KEY" in os.environ:
@@ -35,8 +37,22 @@ def build_llm_config():
             "api_key": os.environ['AZURE_OPENAI_API_KEY'],
             "base_url": os.environ['AZURE_OPENAI_ENDPOINT'],
         }
+    elif "AZURE_MANAGED_IDENTITY_CLIENT_ID" in os.environ and "AZURE_LLM_MODEL" in os.environ and "AZURE_LLM_BASE_URL" in os.environ:
+        config = {
+            "model": os.environ["AZURE_LLM_MODEL"],
+            "base_url": os.environ["AZURE_LLM_BASE_URL"],
+            "api_type": "azure",
+            "api_version": "2023-05-15",
+            "cache_seed": None,
+            "azure_ad_token_provider": azure.identity.get_bearer_token_provider(
+                azure.identity.DefaultAzureCredential(
+                    managed_identity_client_id = os.environ["AZURE_MANAGED_IDENTITY_CLIENT_ID"],
+                    exclude_environment_credential = True
+                ), "https://cognitiveservices.azure.com/.default"
+            )
+        }
     else:
-        raise ValueError("Neither OPENAI_KEY nor AZURE_OPENAI_KEY environment variables are set.")
+        raise ValueError("Neither OPENAI_KEY nor AZURE_OPENAI_KEY nor azure managed identity (AZURE_MANAGED_IDENTITY_CLIENT_ID, AZURE_LLM_MODEL, AZURE_LLM_BASE_URL) environment variables are set.")
     return config
 
 if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
