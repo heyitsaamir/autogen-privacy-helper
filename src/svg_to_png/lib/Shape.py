@@ -1,5 +1,5 @@
 import drawsvg as draw
-from .utils import calculate_size, convert_base64_jpeg_to_png
+from .utils import convert_base64_jpeg_to_png
 
 class SVG(draw.DrawingBasicElement):
     TAG_NAME = 'svg'

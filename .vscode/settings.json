@@ -2,4 +2,7 @@
     "python.terminal.activateEnvironment": true,
     "python.terminal.activateEnvInCurrentTerminal": true,
     "python.analysis.typeCheckingMode": "basic",
+    "pylint.args": [
+        "[\"--rcfile=.pylintrc\"]"
+    ],
 }
