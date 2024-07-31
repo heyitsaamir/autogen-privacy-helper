@@ -14,15 +14,14 @@ teams-ai = "1.3.0"
 python-dotenv = "^1.0.1"
 aiohttp = "3.9.5"
 pyautogen = "0.2.28"
-nest_asyncio = "1.6.0"
 botbuilder-azure = "^4.15.1"
 azure-identity = "^1.17.1"
+pillow = "10.3.0"
+drawsvg = {extras = ["all"], version = "^2.4.0"}
+svgpathtools = "^1.6.1"
 
 [tool.poetry.extras]
 lmm = ["pyautogen"]
-
-[tool.poetry.group.autogen.dependencies]
-pillow = "10.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

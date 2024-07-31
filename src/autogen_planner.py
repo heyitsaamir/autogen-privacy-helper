@@ -1,18 +1,14 @@
+from typing import List, Callable, Optional, Union
+from datetime import datetime
+from dataclasses import dataclass
+from dataclasses_json import dataclass_json
 from botbuilder.schema import Attachment
 from botbuilder.core import CardFactory, TurnContext
 from teams.ai.prompts import Message
 from teams.ai.planners import Planner, Plan, PredictedSayCommand
 from autogen import Agent, GroupChat, GroupChatManager, ChatResult
-from autogen.agentchat.agent import Agent
-import nest_asyncio
 from state import AppTurnState
-from typing import List, Callable, Optional
 from teams_user_proxy import TeamsUserProxy
-from datetime import datetime
-nest_asyncio.apply()
-from dataclasses import dataclass
-from dataclasses_json import dataclass_json
-from teams.input_file import InputFile
 
 @dataclass_json
 @dataclass
@@ -24,7 +20,7 @@ class PredictedSayCommandWithAttachments(PredictedSayCommand):
 
 
 class AutoGenPlanner(Planner):
-    def __init__(self, llm_config, build_group_chat: Callable[[TurnContext, AppTurnState, Agent], GroupChat | None], messageBuilder: Optional[Callable[[TurnContext, AppTurnState], str]] = None) -> None:
+    def __init__(self, llm_config, build_group_chat: Callable[[TurnContext, AppTurnState, Agent], Union[GroupChat,None]], messageBuilder: Optional[Callable[[TurnContext, AppTurnState], str]] = None) -> None:
         self.llm_config = llm_config
         self.build_group_chat = build_group_chat
         self.messageBuilder = messageBuilder

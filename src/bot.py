@@ -17,7 +17,7 @@ from teams.ai.actions import ActionTypes, ActionTurnContext
 from teams.teams_attachment_downloader.teams_attachment_downloader import TeamsAttachmentDownloader
 from teams.teams_attachment_downloader.teams_attachment_downloader_options import TeamsAttachmentDownloaderOptions
 from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
-from botbuilder.azure import BlobStorage, BlobStorageSettings
+# from botbuilder.azure import BlobStorage, BlobStorageSettings
 from threat_model_reviewer_group import ThreatModelReviewerGroup
 
 from config import Config
@@ -55,20 +55,14 @@ def build_llm_config():
         raise ValueError("Neither OPENAI_KEY nor AZURE_OPENAI_KEY nor azure managed identity (AZURE_MANAGED_IDENTITY_CLIENT_ID, AZURE_LLM_MODEL, AZURE_LLM_BASE_URL) environment variables are set.")
     return config
 
+llm_config = config.build_llm_config()
+
 if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
     raise RuntimeError(
-        "Missing environment variables - please check that OPENAI_KEY or AZURE_OPENAI_KEY is set."
+        "Unable to build LLM config - please check that OPENAI_KEY or AZURE_OPENAI_KEY is set."
     )
 
-
-llm_config = build_llm_config()
-
 storage = MemoryStorage()
-# blob_settings = BlobStorageSettings(
-#     connection_string=config.BLOB_CONNECTION_STRING,
-#     container_name=config.BLOB_CONTAINER_NAME
-# )
-# storage = BlobStorage(blob_settings)
 
 threat_model_reviewer_group = ThreatModelReviewerGroup(llm_config=llm_config)
 
@@ -80,7 +74,7 @@ app = Application[AppTurnState](
     ApplicationOptions(
         bot_app_id=config.APP_ID,
         storage=storage,
-        adapter=TeamsAdapter(config),
+        adapter=adapter,
         ai=AIOptions(planner=AutoGenPlanner(llm_config=llm_config,
                      build_group_chat=threat_model_reviewer_group.group_chat_builder)),
         file_downloaders=[downloader],
@@ -89,7 +83,7 @@ app = Application[AppTurnState](
 
 
 @app.ai.action(ActionTypes.SAY_COMMAND)
-async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachments], state: AppTurnState):
+async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachments], _state: AppTurnState):
     content = (
         context.data.response.content
         if context.data.response and context.data.response.content
