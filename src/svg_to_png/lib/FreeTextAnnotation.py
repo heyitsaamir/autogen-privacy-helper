@@ -5,6 +5,7 @@ class FreeTextAnnotation(Shape):
     def convert_to_svg(self, d):
         d.append(draw.Rectangle(self.left, self.top, self.width, self.height, fill='white', stroke='black', opacity=0))
         self.add_text(d)
+        self.add_icon(d)
         
     def add_icon(self, d):
         height = max(min(90, self.height / 2.5), 40)
