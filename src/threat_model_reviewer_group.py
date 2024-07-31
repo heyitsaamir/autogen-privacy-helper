@@ -49,8 +49,8 @@ class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
 1. All nodes (boxes or nodes surrounded by a black border) should be inside a red boundary. Are there any nodes outside the red boundary?
 2. It should be clear to tell what each red boundary is.
-3. All arrows should be labeled.
-4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens.  Are you able to understand the sequental flow of the data? Can you describe the data flow from one node to another?
+3. All arrows should be labeled (labels are inside green boxes).
+4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens. If all arrows do not contains labels, indicate which ones. Otherwise state the flow of data in the order that the arrow point
 """):
         self.llm_config = llm_config
         self.threat_model_spec = threat_model_spec
@@ -72,6 +72,7 @@ Your question
 
 If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
             """,
+            description="A questioner agent that can ask questions based on a threat model picture. It can ask questions about the threat model from the given picture or about the broader system.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
@@ -106,10 +107,11 @@ If you do not understand something from the threat model picture, you may ask a 
 your clarifying question
 </CLARIFYING_QUESTION>
             """,
+            description="A answerer agent that can exclusively answer questions based on a threat model picture.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
             img=img,
-            extra_details=img_details
+            extra_details=img_details,
         )
 
         answer_evaluator_agent = AssistantAgent(
@@ -124,6 +126,7 @@ For each spec criteria that is not met, provide some action items on how to impr
             """,
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
+            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer agent.",
         )
 
         for agent in [questioner_agent, answerer_agent, answer_evaluator_agent]:

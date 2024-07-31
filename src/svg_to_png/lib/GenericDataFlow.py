@@ -59,7 +59,7 @@ class GenericDataFlow(Curve):
         #     d.append(draw.Circle(x, y, 3, fill="black"))
             
         quadratic_angle_interpolator = interpolate_quadratic_bezier_angle([self.sourceX, self.sourceY], [self.controlX, self.controlY], [self.targetX, self.targetY])
-        pts = 5
+        pts = 4
         for i in range(pts):
             t = i / (pts - 1)
             x, y = quadratic_interpolator(t)
@@ -103,7 +103,5 @@ class GenericDataFlow(Curve):
     def convert_to_svg(self, d):
         self.add_curve(d)
         self.add_text(d)
-        self.add_text(d)
-        # self.add_arrow(d)
         self.add_additional_arrows(d)
         self.add_icon(d)
