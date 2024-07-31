@@ -1,7 +1,7 @@
 import math
 import drawsvg as draw
 from .Curve import Curve
-from .utils import calculate_size
+from .utils import calculate_size, convert_base64_jpeg_to_png
 
 def interpolate_quadratic_bezier(start, control, end):
     def interpolator(t):
@@ -40,7 +40,7 @@ class GenericDataFlow(Curve):
         #     d.append(draw.Circle(x, y, 3, fill="black"))
             
         quadratic_angle_interpolator = interpolate_quadratic_bezier_angle([self.sourceX, self.sourceY], [self.controlX, self.controlY], [self.targetX, self.targetY])
-        pts = 4
+        pts = 5
         for i in range(pts):
             t = i / (pts - 1)
             x, y = quadratic_interpolator(t)
@@ -57,9 +57,23 @@ class GenericDataFlow(Curve):
         label = draw.Text(self.name, 11, self.handleX - newWidth / 2 + 13, self.handleY + 36)
         d.append(label)
         
+    def add_icon(self, d):
+        newWidth, newHeight = calculate_size(self.name)
+        icon = self.icons[self.type]
+        if not icon:
+            return
+        x = self.handleX - newWidth / 2 - 13
+        y = self.handleY + max(newHeight, 30) / 2 + 7
+        width = 25
+        height = 25
+        opacity = 0.2
+        png_bytes = convert_base64_jpeg_to_png(icon)
+        image = draw.Image(x, y, width, height, data=png_bytes, mime_type="image/PNG", opacity=opacity)
+        d.append(image)
+        
+        
     def convert_to_svg(self, d):
         self.add_curve(d)
         self.add_text(d)
-        self.add_text(d)
-        # self.add_arrow(d)
         self.add_additional_arrows(d)
+        self.add_icon(d)

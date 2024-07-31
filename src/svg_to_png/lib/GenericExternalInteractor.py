@@ -6,3 +6,4 @@ class GenericExternalInteractor(Shape):
         rect = draw.Rectangle(self.left, self.top, self.width, self.height, fill='white', stroke='black', stroke_width=1)
         d.append(rect)
         self.add_text(d)
+        self.add_icon(d)
