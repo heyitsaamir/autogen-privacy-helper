@@ -1,26 +1,7 @@
 import math
-import base64
-from io import BytesIO
 import drawsvg as draw
-from PIL import Image
 from .Curve import Curve
-from .utils import calculate_size
-
-def convert_base64_jpeg_to_png(base64_jpeg_string):
-    # Decode the base64 string to bytes
-    jpeg_bytes = base64.b64decode(base64_jpeg_string)
-    image = Image.open(BytesIO(jpeg_bytes))
-    
-    # Create a bytes buffer to hold the PNG data
-    png_bytes_io = BytesIO()
-    
-    # Save the image as PNG to the bytes buffer
-    image.save(png_bytes_io, format='PNG')
-    
-    # Get the PNG bytes from the buffer
-    png_bytes = png_bytes_io.getvalue()
-    
-    return png_bytes
+from .utils import calculate_size, convert_base64_jpeg_to_png
 
 def interpolate_quadratic_bezier(start, control, end):
     def interpolator(t):
@@ -59,7 +40,7 @@ class GenericDataFlow(Curve):
         #     d.append(draw.Circle(x, y, 3, fill="black"))
             
         quadratic_angle_interpolator = interpolate_quadratic_bezier_angle([self.sourceX, self.sourceY], [self.controlX, self.controlY], [self.targetX, self.targetY])
-        pts = 4
+        pts = 5
         for i in range(pts):
             t = i / (pts - 1)
             x, y = quadratic_interpolator(t)
@@ -78,15 +59,6 @@ class GenericDataFlow(Curve):
         
     def add_icon(self, d):
         newWidth, newHeight = calculate_size(self.name)
-    #     var encodedIcon = icons[this.type];
-    # canvas
-    #   .image("data:image/jpeg; base64, " + encodedIcon)
-    #   .size(25, 25)
-    #   .move(
-    #     this.handleX - newWidth / 2 - 13,
-    #     this.handleY + Math.max(newHeight, 30) / 2 - 3
-    #   )
-    #   .attr("opacity", 0.2);
         icon = self.icons[self.type]
         if not icon:
             return

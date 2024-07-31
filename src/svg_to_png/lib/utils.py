@@ -1,4 +1,7 @@
 from svgpathtools import svgstr2paths
+from PIL import Image
+import base64
+from io import BytesIO
 
 def calculate_size(name_arg):
     max_width = 0
@@ -44,3 +47,19 @@ def get_bbox(svg_file):
             ymax = max(ymax, p_ymax)
     
     return BoundingBox(xmin, xmax, ymin, ymax)
+
+def convert_base64_jpeg_to_png(base64_jpeg_string):
+    # Decode the base64 string to bytes
+    jpeg_bytes = base64.b64decode(base64_jpeg_string)
+    image = Image.open(BytesIO(jpeg_bytes))
+    
+    # Create a bytes buffer to hold the PNG data
+    png_bytes_io = BytesIO()
+    
+    # Save the image as PNG to the bytes buffer
+    image.save(png_bytes_io, format='PNG')
+    
+    # Get the PNG bytes from the buffer
+    png_bytes = png_bytes_io.getvalue()
+    
+    return png_bytes
