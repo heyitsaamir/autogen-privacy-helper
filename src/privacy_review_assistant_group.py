@@ -6,7 +6,7 @@ from state import AppTurnState
 from rag_agents import setup_rag_assistant
 from threat_model_reviewer_group import ThreatModelReviewerGroup
 
-class ThreatModelHelperGroup:
+class PrivacyReviewAssistantGroup:
     def __init__(self, llm_config):
         self.llm_config = llm_config
         

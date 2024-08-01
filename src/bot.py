@@ -18,7 +18,7 @@ from teams.teams_attachment_downloader.teams_attachment_downloader import TeamsA
 from teams.teams_attachment_downloader.teams_attachment_downloader_options import TeamsAttachmentDownloaderOptions
 from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
 # from botbuilder.azure import BlobStorage, BlobStorageSettings
-from threat_model_helper_group import ThreatModelHelperGroup
+from privacy_review_assistant_group import PrivacyReviewAssistantGroup
 
 from config import Config
 from state import AppTurnState
@@ -64,7 +64,7 @@ if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
 
 storage = MemoryStorage()
 
-threat_model_reviewer_group = ThreatModelHelperGroup(llm_config=llm_config)
+threat_model_reviewer_group = PrivacyReviewAssistantGroup(llm_config=llm_config)
 
 adapter = TeamsAdapter(config)
 downloader = TeamsAttachmentDownloader(
