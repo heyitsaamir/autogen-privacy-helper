@@ -1,14 +1,13 @@
 import io
 from typing import Union
 from PIL import Image
-from autogen import AssistantAgent, GroupChat, Agent, ConversableAgent
+from autogen import AssistantAgent, GroupChat, Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 
 from botbuilder.core import TurnContext
 from teams.input_file import InputFile
 
 from state import AppTurnState
-from rag_agents import setup_rag_assistant
 from svg_to_png.svg_to_png import convert_svg_to_png
 
 
@@ -45,8 +44,7 @@ class ImageReasoningAgent(MultimodalConversableAgent):
                 messages.append({"content": "No threat model exists.", "role": "user"})
             return messages
         self.hook_lists["process_all_messages_before_reply"].append(
-            add_image_to_messages)
-
+            add_image_to_messages)    
 
 class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
@@ -123,20 +121,17 @@ your clarifying question
         answer_evaluator_agent = AssistantAgent(
             name="Overall_spec_evaluator",
             system_message=f"""You are an answer reviewer agent.
-Your role is to evaluate the answers given by the Threat_Model_Answerer agent and the System_Details_Answerer agent.
+Your role is to evaluate the answers given by the Threat_Model_Answerer agent agent.
 You are only called if the Questioner agent has no more questions to ask.
 Provide details on the quality of the threat model based on the answers given by the answerer agent.
 Evaluate the answers based on the following spec criteria:
 {self.threat_model_spec}
 For each spec criteria that is not met, provide some action items on how to improve the threat model to meet the requirement.
             """,
-            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer and System_Details_Answerer agents.",
+            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer agent.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
-            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer agent.",
         )
-        
-        rag_assistant = setup_rag_assistant(llm_config=self.llm_config)
 
         for agent in [questioner_agent, answerer_agent, answer_evaluator_agent, rag_assistant]:
             group_chat_agents.append(agent)
@@ -175,8 +170,7 @@ For each spec criteria that is not met, provide some action items on how to impr
             speaker_selection_method=custom_speaker_selection_func,
             allowed_or_disallowed_speaker_transitions={
                 user_agent: [questioner_agent],
-                questioner_agent: [answerer_agent, rag_assistant],
-                rag_assistant: [questioner_agent],
+                questioner_agent: [answerer_agent, answer_evaluator_agent],
                 answerer_agent: [questioner_agent, user_agent],
                 answer_evaluator_agent: [user_agent]
             },
