@@ -150,17 +150,6 @@ For each spec criteria that is not met, provide some action items on how to impr
                     print("No questions, so moving to answer evaluator")
                     return answer_evaluator_agent
                 else:
-                    # find group chat manager from groupchat.agents
-                    selector = ConversableAgent("SelectorAgent", llm_config=self.llm_config)
-                    select_speaker_messages = groupchat.messages.copy()
-                    # If last message is a tool call or function call, blank the call so the api doesn't throw
-                    if select_speaker_messages[-1].get("function_call", False):
-                        select_speaker_messages[-1] = dict(select_speaker_messages[-1], function_call=None)
-                    if select_speaker_messages[-1].get("tool_calls", False):
-                        select_speaker_messages[-1] = dict(select_speaker_messages[-1], tool_calls=None)
-                    agent = groupchat._auto_select_speaker(last_speaker, selector, select_speaker_messages, [answerer_agent, rag_assistant])
-                    if agent:
-                        return agent
                     return 'auto'
 
             if last_speaker == answerer_agent:
@@ -185,7 +174,7 @@ For each spec criteria that is not met, provide some action items on how to impr
             speaker_selection_method=custom_speaker_selection_func,
             allowed_or_disallowed_speaker_transitions={
                 user_agent: [questioner_agent],
-                questioner_agent: [answerer_agent, rag_assistant, answer_evaluator_agent],
+                questioner_agent: [answerer_agent, rag_assistant],
                 rag_assistant: [questioner_agent],
                 answerer_agent: [questioner_agent, user_agent],
                 answer_evaluator_agent: [user_agent]
