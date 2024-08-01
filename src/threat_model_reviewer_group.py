@@ -1,14 +1,13 @@
 import io
 from typing import Union
 from PIL import Image
-from autogen import AssistantAgent, GroupChat, Agent, ConversableAgent
+from autogen import AssistantAgent, GroupChat, Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 
 from botbuilder.core import TurnContext
 from teams.input_file import InputFile
 
 from state import AppTurnState
-from rag_agents import setup_rag_assistant
 from svg_to_png.svg_to_png import convert_svg_to_png
 
 
@@ -133,8 +132,6 @@ For each spec criteria that is not met, provide some action items on how to impr
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
-        
-        rag_assistant = setup_rag_assistant(llm_config=self.llm_config)
 
         for agent in [questioner_agent, answerer_agent, answer_evaluator_agent, rag_assistant]:
             group_chat_agents.append(agent)
