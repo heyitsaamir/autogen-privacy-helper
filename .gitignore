@@ -17,5 +17,5 @@ appPackage/build
 .python-version
 .conda
 
-*.png
-*.svg
+/*.png
+/*.svg
