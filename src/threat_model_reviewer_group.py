@@ -1,7 +1,7 @@
 import io
 from typing import Union
 from PIL import Image
-from autogen import AssistantAgent, GroupChat, Agent
+from autogen import AssistantAgent, GroupChat, Agent, ConversableAgent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 
 from botbuilder.core import TurnContext
@@ -40,6 +40,9 @@ class ImageReasoningAgent(MultimodalConversableAgent):
                         "text": f"Here are some helpful labels: {self.extra_details}. Use these to help answer the questions."
                     })
                 messages.append({"content": img_message, "role": "user"})
+            else:
+                messages = messages.copy()
+                messages.append({"content": "No threat model exists.", "role": "user"})
             return messages
         self.hook_lists["process_all_messages_before_reply"].append(
             add_image_to_messages)
@@ -120,14 +123,14 @@ your clarifying question
         answer_evaluator_agent = AssistantAgent(
             name="Overall_spec_evaluator",
             system_message=f"""You are an answer reviewer agent.
-Your role is to evaluate the answers given by the Threat_Model_Answerer agent.
+Your role is to evaluate the answers given by the Threat_Model_Answerer agent and the System_Details_Answerer agent.
 You are only called if the Questioner agent has no more questions to ask.
 Provide details on the quality of the threat model based on the answers given by the answerer agent.
 Evaluate the answers based on the following spec criteria:
 {self.threat_model_spec}
 For each spec criteria that is not met, provide some action items on how to improve the threat model to meet the requirement.
             """,
-            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer agent.",
+            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer and System_Details_Answerer agents.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
@@ -147,7 +150,18 @@ For each spec criteria that is not met, provide some action items on how to impr
                     print("No questions, so moving to answer evaluator")
                     return answer_evaluator_agent
                 else:
-                    return [answerer_agent, rag_assistant]
+                    # find group chat manager from groupchat.agents
+                    selector = ConversableAgent("SelectorAgent", llm_config=self.llm_config)
+                    select_speaker_messages = groupchat.messages.copy()
+                    # If last message is a tool call or function call, blank the call so the api doesn't throw
+                    if select_speaker_messages[-1].get("function_call", False):
+                        select_speaker_messages[-1] = dict(select_speaker_messages[-1], function_call=None)
+                    if select_speaker_messages[-1].get("tool_calls", False):
+                        select_speaker_messages[-1] = dict(select_speaker_messages[-1], tool_calls=None)
+                    agent = groupchat._auto_select_speaker(last_speaker, selector, select_speaker_messages, [answerer_agent, rag_assistant])
+                    if agent:
+                        return agent
+                    return 'auto'
 
             if last_speaker == answerer_agent:
                 last_message = groupchat.messages[-1]
