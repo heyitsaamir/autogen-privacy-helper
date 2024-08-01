@@ -8,7 +8,7 @@ This bot models privacy review helper. The group is built for two purposes curre
 2. RAG Search
 
 The basic structure of the autogen group is as follows:
-![alt text](image.png)
+![alt text](docs/image.png)
 
 ## How to run the project
 This project uses Teams AI library and autogen.
