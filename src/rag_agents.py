@@ -116,7 +116,7 @@ def setup_rag_assistant(llm_config):
     
     assistant = AssistantAgent(
         name="System_Details_Answerer",
-        description="A system details answerer agent that can answer questions about the overall system.",
+        description="A system details answerer agent that can seach for information. It cannot do any evaluation for threat models.",
     )
     
     def extract_problem(message):

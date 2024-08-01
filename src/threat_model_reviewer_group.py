@@ -1,14 +1,13 @@
 import io
 from typing import Union
 from PIL import Image
-from autogen import AssistantAgent, GroupChat, Agent, ConversableAgent
+from autogen import AssistantAgent, GroupChat, Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 
 from botbuilder.core import TurnContext
 from teams.input_file import InputFile
 
 from state import AppTurnState
-from rag_agents import setup_rag_assistant
 from svg_to_png.svg_to_png import convert_svg_to_png
 
 
@@ -45,8 +44,7 @@ class ImageReasoningAgent(MultimodalConversableAgent):
                 messages.append({"content": "No threat model exists.", "role": "user"})
             return messages
         self.hook_lists["process_all_messages_before_reply"].append(
-            add_image_to_messages)
-
+            add_image_to_messages)    
 
 class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
@@ -54,7 +52,6 @@ class ThreatModelReviewerGroup:
 2. It should be clear to tell what each red boundary is.
 3. All arrows should be labeled (labels are inside green boxes).
 4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens. If all arrows do not contains labels, indicate which ones. Otherwise state the flow of data in the order that the arrow point
-5. All nodes should correspond to a valid service or data store in the system. Are you able to verify that all the nodes exist in the system?
 """):
         self.llm_config = llm_config
         self.threat_model_spec = threat_model_spec
@@ -133,12 +130,9 @@ For each spec criteria that is not met, provide some action items on how to impr
             description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer and System_Details_Answerer agents.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
-            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer agent.",
         )
-        
-        rag_assistant = setup_rag_assistant(llm_config=self.llm_config)
 
-        for agent in [questioner_agent, answerer_agent, answer_evaluator_agent, rag_assistant]:
+        for agent in [questioner_agent, answerer_agent, answer_evaluator_agent]:
             group_chat_agents.append(agent)
 
         def custom_speaker_selection_func(
@@ -151,7 +145,7 @@ For each spec criteria that is not met, provide some action items on how to impr
                     print("No questions, so moving to answer evaluator")
                     return answer_evaluator_agent
                 else:
-                    return 'auto'
+                    return answerer_agent
 
             if last_speaker == answerer_agent:
                 last_message = groupchat.messages[-1]
@@ -160,6 +154,9 @@ For each spec criteria that is not met, provide some action items on how to impr
                     return user_agent
                 else:
                     return questioner_agent
+                
+            if last_speaker == answer_evaluator_agent:
+                return 'auto'
                 
             # ## If the last speaker is the rag_assistant and it has just provided a tool response,
             # ## then we want to convert that into a user message.
@@ -175,8 +172,7 @@ For each spec criteria that is not met, provide some action items on how to impr
             speaker_selection_method=custom_speaker_selection_func,
             allowed_or_disallowed_speaker_transitions={
                 user_agent: [questioner_agent],
-                questioner_agent: [answerer_agent, rag_assistant],
-                rag_assistant: [questioner_agent],
+                questioner_agent: [answerer_agent, answer_evaluator_agent],
                 answerer_agent: [questioner_agent, user_agent],
                 answer_evaluator_agent: [user_agent]
             },
