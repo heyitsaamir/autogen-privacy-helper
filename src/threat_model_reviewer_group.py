@@ -133,7 +133,7 @@ For each spec criteria that is not met, provide some action items on how to impr
                         "timeout": 60, "temperature": 0},
         )
 
-        for agent in [questioner_agent, answerer_agent, answer_evaluator_agent, rag_assistant]:
+        for agent in [questioner_agent, answerer_agent, answer_evaluator_agent]:
             group_chat_agents.append(agent)
 
         def custom_speaker_selection_func(
