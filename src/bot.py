@@ -5,6 +5,7 @@ Licensed under the MIT License.
 Description: initialize the app and listen for `message` activitys
 """
 
+import os
 import sys
 import traceback
 from botbuilder.schema import Activity, ActivityTypes
@@ -22,10 +23,41 @@ from threat_model_reviewer_group import ThreatModelReviewerGroup
 from config import Config
 from state import AppTurnState
 
+import azure.identity
+
 config = Config()
+def build_llm_config():
+    if "OPENAI_KEY" in os.environ:
+        config = {"model": "gpt-4-turbo", "api_key": os.environ["OPENAI_KEY"]}
+    elif "AZURE_OPENAI_KEY" in os.environ and "AZURE_OPENAI_ENDPOINT" in os.environ:
+        config = {
+            "model": "my-gpt-4-deployment",
+            "api_version": "2024-02-01",
+            "api_type": "azure",
+            "api_key": os.environ['AZURE_OPENAI_API_KEY'],
+            "base_url": os.environ['AZURE_OPENAI_ENDPOINT'],
+        }
+    elif "AZURE_MANAGED_IDENTITY_CLIENT_ID" in os.environ and "AZURE_LLM_MODEL" in os.environ and "AZURE_LLM_BASE_URL" in os.environ:
+        config = {
+            "model": os.environ["AZURE_LLM_MODEL"],
+            "base_url": os.environ["AZURE_LLM_BASE_URL"],
+            "api_type": "azure",
+            "api_version": "2023-05-15",
+            "cache_seed": None,
+            "azure_ad_token_provider": azure.identity.get_bearer_token_provider(
+                azure.identity.DefaultAzureCredential(
+                    managed_identity_client_id = os.environ["AZURE_MANAGED_IDENTITY_CLIENT_ID"],
+                    exclude_environment_credential = True
+                ), "https://cognitiveservices.azure.com/.default"
+            )
+        }
+    else:
+        raise ValueError("Neither OPENAI_KEY nor AZURE_OPENAI_KEY nor azure managed identity (AZURE_MANAGED_IDENTITY_CLIENT_ID, AZURE_LLM_MODEL, AZURE_LLM_BASE_URL) environment variables are set.")
+    return config
 
 llm_config = config.build_llm_config()
-if llm_config is None:
+
+if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
     raise RuntimeError(
         "Unable to build LLM config - please check that OPENAI_KEY or AZURE_OPENAI_KEY is set."
     )

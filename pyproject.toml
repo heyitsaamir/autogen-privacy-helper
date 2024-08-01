@@ -15,6 +15,7 @@ python-dotenv = "^1.0.1"
 aiohttp = "3.9.5"
 pyautogen = {version="0.2.28", extras=["llm", "retrievechat"]}
 botbuilder-azure = "^4.15.1"
+azure-identity = "^1.17.1"
 pillow = "10.3.0"
 azure-search-documents = "^11.5.0"
 azure-core = "^1.30.2"

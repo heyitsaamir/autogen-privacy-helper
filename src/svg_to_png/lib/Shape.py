@@ -1,4 +1,5 @@
 import drawsvg as draw
+from .utils import calculate_size, convert_base64_jpeg_to_png
 
 class SVG(draw.DrawingBasicElement):
     TAG_NAME = 'svg'
@@ -9,7 +10,7 @@ class SVG(draw.DrawingBasicElement):
         self.children.append(animate_element)
     
 class Shape:
-    def __init__(self, category, type, name: str, height, width, left, top):
+    def __init__(self, category, type, name: str, icons: dict, height, width, left, top):
         self.category = category
         self.type = type
         self.name = name
@@ -17,6 +18,7 @@ class Shape:
         self.width = int(width) - 10
         self.left = int(left) + 5
         self.top = int(top) + 5
+        self.icons = icons
     
     def add_text(self, d):
         if len(self.name) == 0:
@@ -42,3 +44,16 @@ class Shape:
         # foreign_object = draw.ForeignObject(body.content, x=self.left, y=self.top, width=self.width,
         #                                     height=self.height, font_family='Open Sans', font_size=11)
         # d.append(foreign_object)
+        
+    def add_icon(self, d, x = None, y = None, width = None, height = None):
+        icon = self.icons[self.type]
+        if not icon:
+            return
+        iconHeight = height if height is not None else max(min(90, self.height / 2.5), 40)
+        iconWidth = width if width is not None else max(min(90, iconHeight), 40)
+        x = x if x is not None else self.left + self.width - iconWidth - 5
+        y = y if y is not None else self.top + self.height - iconHeight - 5
+        opacity = 0.2
+        png_bytes = convert_base64_jpeg_to_png(icon)
+        image = draw.Image(x, y, iconWidth, iconHeight, data=png_bytes, mime_type="image/PNG", opacity=opacity)
+        d.append(image)

@@ -48,26 +48,26 @@ def get_element_name(shape):
     name = any_type_properties[1][2].text
     return name if name else ""
         
-def draw_element(el: Element, d):
+def draw_element(el: Element, d, icons: dict):
     generic_type_id = el.find(build_tag(ABSTRACTS_XMLNS, "GenericTypeId")).text
     properties = el.find(build_tag(ABSTRACTS_XMLNS, "Properties"))
     any_type_properties = properties.findall(build_tag(ARRAY_XMLNS, "anyType"))
     type = any_type_properties[0][0].text
     name = el.get('custom_key') if el.get('custom_key') else get_element_name(el)
     if generic_type_id == "GE.DS":
-        shape = GenericDataStore(generic_type_id, type, name, *get_shape_details(el))
+        shape = GenericDataStore(generic_type_id, type, name, icons, *get_shape_details(el))
     elif generic_type_id == "GE.EI":
-        shape = GenericExternalInteractor(generic_type_id, type, name, *get_shape_details(el))
+        shape = GenericExternalInteractor(generic_type_id, type, name, icons, *get_shape_details(el))
     elif generic_type_id == "GE.P":
-        shape = GenericProcess(generic_type_id, type, name, *get_shape_details(el))
+        shape = GenericProcess(generic_type_id, type, name, icons, *get_shape_details(el))
     elif generic_type_id == "GE.TB.B":
-        shape = GenericTrustBorderBoundary(generic_type_id, type, name, *get_shape_details(el))
+        shape = GenericTrustBorderBoundary(generic_type_id, type, name, icons, *get_shape_details(el))
     elif generic_type_id == "GE.A":
-        shape = FreeTextAnnotation(generic_type_id, type, name, *get_shape_details(el))
+        shape = FreeTextAnnotation(generic_type_id, type, name, icons, *get_shape_details(el))
     elif generic_type_id == "GE.DF":
-        shape = GenericDataFlow(generic_type_id, type, name, *get_curve_details(el))
+        shape = GenericDataFlow(generic_type_id, type, name, icons, *get_curve_details(el))
     elif generic_type_id == "GE.TB.L":
-        shape = GenericTrustLineBoundary(generic_type_id, type, name, *get_curve_details(el))
+        shape = GenericTrustLineBoundary(generic_type_id, type, name, icons, *get_curve_details(el))
     else:
         shape = None
         
@@ -145,15 +145,15 @@ def convert_svg_to_png(file: str = None, svg_content: str = None, out_file="resu
             key_index += 1
         
         for shape in shapes:
-            draw_element(shape, d)
+            draw_element(shape, d, icons)
         
         lines = tab_lines.findall(build_tag(ARRAY_XMLNS, "KeyValueOfguidanyType"))
         for line in lines:
             value = line.find(build_tag(ARRAY_XMLNS, "Value"))
-            draw_element(value, d)
+            draw_element(value, d, icons)
             
         for boundary in boundaries:
-            draw_element(boundary, d)
+            draw_element(boundary, d, icons)
         
         bounding_box = get_bbox(d.as_svg())
         bounding_box.add_padding(10)

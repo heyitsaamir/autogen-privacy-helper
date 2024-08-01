@@ -10,3 +10,4 @@ class GenericDataStore(Shape):
         bottom_line = draw.Line(self.left, self.top + self.height, self.left + self.width, self.top + self.height, stroke='black', stroke_width=1)
         d.append(bottom_line)
         self.add_text(d)
+        self.add_icon(d)

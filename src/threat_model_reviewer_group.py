@@ -52,8 +52,8 @@ class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
 1. All nodes (boxes or nodes surrounded by a black border) should be inside a red boundary. Are there any nodes outside the red boundary?
 2. It should be clear to tell what each red boundary is.
-3. All arrows should be labeled. Are there any arrows between nodes that are not labeled?
-4. All labels for the arrows between should have sequential numbers. These numbers indicate the order in which the flow happens.  Are you able to understand the sequental flow of the data? Can you describe the data flow from one node to another?
+3. All arrows should be labeled (labels are inside green boxes).
+4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens. If all arrows do not contains labels, indicate which ones. Otherwise state the flow of data in the order that the arrow point
 5. All nodes should correspond to a valid service or data store in the system. Are you able to verify that all the nodes exist in the system?
 """):
         self.llm_config = llm_config
@@ -113,11 +113,11 @@ If you do not understand something from the threat model picture, you may ask a 
 your clarifying question
 </CLARIFYING_QUESTION>
             """,
+            description="A answerer agent that can exclusively answer questions based on a threat model picture.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
             img=img,
             extra_details=img_details,
-            description="A answerer agent that can exclusively answer questions based on a threat model picture."
         )
 
         answer_evaluator_agent = AssistantAgent(
@@ -133,6 +133,7 @@ For each spec criteria that is not met, provide some action items on how to impr
             description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer and System_Details_Answerer agents.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
+            description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer agent.",
         )
         
         rag_assistant = setup_rag_assistant(llm_config=self.llm_config)
