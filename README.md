@@ -4,11 +4,12 @@
 
 This is a simple project that demonstrates the use of [autogen](https://github.com/microsoft/autogen) in the context of a Microsoft Teams AI bot.
 This bot models privacy review helper. The group is built for two purposes currently:
-1. Threat model validation
-2. RAG Search
+1. Threat model validation (validates threat models)
+2. RAG Search (searches for information using RAG)
+3. Visualizer Agent (visualizes the threat model)
 
 The basic structure of the autogen group is as follows:
-![alt text](docs/image.png)
+![alt text](image.png)
 
 ## How to run the project
 This project uses Teams AI library and autogen.
