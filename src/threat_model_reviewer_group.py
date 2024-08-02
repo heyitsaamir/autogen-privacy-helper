@@ -1,50 +1,11 @@
-import io
 from typing import Union
-from PIL import Image
 from autogen import AssistantAgent, GroupChat, Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 
 from botbuilder.core import TurnContext
-from teams.input_file import InputFile
 
 from state import AppTurnState
-from svg_to_png.svg_to_png import convert_svg_to_png
-
-
-def get_image(input_file: Union[InputFile, str]):
-    img = Image.open(io.BytesIO(input_file.content) if isinstance(input_file, InputFile) else input_file)
-    wpercent = (400 / float(img.size[0]))
-    hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((400, hsize))
-    return img
-
-class ImageReasoningAgent(MultimodalConversableAgent):
-    def __init__(self, img: Union[Image.Image, None], extra_details: Union[str, None] = None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.img = img
-        self.extra_details = extra_details
-
-        def add_image_to_messages(messages):
-            if self.img:
-                messages = messages.copy()
-                img_message = [{
-                    "type": "image_url",
-                    "image_url": {
-                        "url": self.img,
-                    }
-                }]
-                if self.extra_details:
-                    img_message.append({
-                        "type": "text",
-                        "text": f"Here are some helpful labels: {self.extra_details}. Use these to help answer the questions."
-                    })
-                messages.append({"content": img_message, "role": "user"})
-            else:
-                messages = messages.copy()
-                messages.append({"content": "No threat model exists.", "role": "user"})
-            return messages
-        self.hook_lists["process_all_messages_before_reply"].append(
-            add_image_to_messages)    
+from threat_model_visualizer import ThreatModelImageAddToMessageCapability
 
 class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
@@ -52,12 +13,11 @@ class ThreatModelReviewerGroup:
 2. It should be clear to tell what each red boundary is.
 3. All arrows should be labeled (labels are inside green boxes).
 4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens. If all arrows do not contains labels, indicate which ones. Otherwise state the flow of data in the order that the arrow point
-5. All nodes should correspond to a valid service or data store in the system. Are you able to verify that all the nodes exist in the system?
 """):
         self.llm_config = llm_config
         self.threat_model_spec = threat_model_spec
 
-    def group_chat_builder(self, _context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
+    def group_chat_builder(self, context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
         group_chat_agents = [user_agent]
         questioner_agent = AssistantAgent(
             name="Questioner",
@@ -79,25 +39,8 @@ If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
-
-        img = None
-        img_details = None
-        if state.temp.input_files and state.temp.input_files[0]:
-            if isinstance(state.temp.input_files[0], InputFile):
-                if state.temp.input_files[0].content_type == 'image/jpeg' or state.temp.input_files[0].content_type == 'image/png':
-                    img = get_image(state.temp.input_files[0])
-                elif state.temp.input_files[0].content_type == 'application/vnd.microsoft.teams.file.download.info':
-                    # make sure it's a threat model file
-                    if state.temp.input_files[0].content and isinstance(state.temp.input_files[0].content, bytes):
-                        if state.temp.input_files[0].content.startswith(b"<ThreatModel"):
-                            svg_str = state.temp.input_files[0].content.decode("utf-8")
-                            key_label_tuples = convert_svg_to_png(svg_content=svg_str, out_file="threat_model")
-                            img = get_image("threat_model.png")
-                            if key_label_tuples:
-                                for key, label in key_label_tuples:
-                                    img_details = img_details + f"\n{key}: {label}" if img_details else f"{key}: {label}"
                             
-        answerer_agent = ImageReasoningAgent(
+        answerer_agent = MultimodalConversableAgent(
             name="Threat_Model_Image_Answerer",
             system_message="""You are an threat model answerer agent.
 Your role is to answer questions based on the threat model picture.
@@ -114,9 +57,9 @@ your clarifying question
             description="A answerer agent that can exclusively answer questions based on a threat model picture.",
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
-            img=img,
-            extra_details=img_details,
         )
+        threat_model_capability = ThreatModelImageAddToMessageCapability(context, say_when_evaluating=True, state=state, max_width=400)
+        threat_model_capability.add_to_agent(answerer_agent)
 
         answer_evaluator_agent = AssistantAgent(
             name="Overall_spec_evaluator",
@@ -146,7 +89,7 @@ For each spec criteria that is not met, provide some action items on how to impr
                     print("No questions, so moving to answer evaluator")
                     return answer_evaluator_agent
                 else:
-                    return 'auto'
+                    return answerer_agent
 
             if last_speaker == answerer_agent:
                 last_message = groupchat.messages[-1]
