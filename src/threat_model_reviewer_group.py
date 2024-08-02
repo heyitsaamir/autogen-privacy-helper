@@ -1,15 +1,11 @@
-import io
 from typing import Union
-from PIL import Image
 from autogen import AssistantAgent, GroupChat, Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
-from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 
 from botbuilder.core import TurnContext
-from teams.input_file import InputFile
 
 from state import AppTurnState
-from svg_to_png.svg_to_png import convert_svg_to_png
+from threat_model_visualizer import ThreatModelImageAddToMessageCapability
 
 class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
@@ -21,7 +17,7 @@ class ThreatModelReviewerGroup:
         self.llm_config = llm_config
         self.threat_model_spec = threat_model_spec
 
-    def group_chat_builder(self, _context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
+    def group_chat_builder(self, context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
         group_chat_agents = [user_agent]
         questioner_agent = AssistantAgent(
             name="Questioner",
@@ -62,7 +58,7 @@ your clarifying question
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
-        threat_model_capability = ThreatModelImageVisualizerCapability(state=state, max_width=400)
+        threat_model_capability = ThreatModelImageAddToMessageCapability(context, say_when_evaluating=True, state=state, max_width=400)
         threat_model_capability.add_to_agent(answerer_agent)
 
         answer_evaluator_agent = AssistantAgent(
@@ -124,69 +120,3 @@ For each spec criteria that is not met, provide some action items on how to impr
             speaker_transitions_type="allowed"
         )
         return groupchat
-
-class ThreatModelImageVisualizer():
-    def __init__(self, state: AppTurnState, max_width=None):
-        self.state = state
-        self.img = None
-        self.extra_details = None
-        self.max_width = max_width
-    
-    def extract_image_from_state(self):
-        img = None
-        img_details = None
-        if self.state.temp.input_files and self.state.temp.input_files[0]:
-            if isinstance(self.state.temp.input_files[0], InputFile):
-                if self.state.temp.input_files[0].content_type == 'image/jpeg' or self.state.temp.input_files[0].content_type == 'image/png':
-                    img = self._get_image(self.state.temp.input_files[0])
-                elif self.state.temp.input_files[0].content_type == 'application/vnd.microsoft.teams.file.download.info':
-                    # make sure it's a threat model file
-                    if self.state.temp.input_files[0].content and isinstance(self.state.temp.input_files[0].content, bytes):
-                        if self.state.temp.input_files[0].content.startswith(b"<ThreatModel"):
-                            svg_str = self.state.temp.input_files[0].content.decode("utf-8")
-                            key_label_tuples = convert_svg_to_png(svg_content=svg_str, out_file="threat_model")
-                            img = self._get_image("threat_model.png")
-                            if key_label_tuples:
-                                for key, label in key_label_tuples:
-                                    img_details = img_details + f"\n{key}: {label}" if img_details else f"{key}: {label}"
-        self.img = img
-        self.extra_details = img_details
-    
-    def _get_image(self, input_file: Union[InputFile, str]):
-        img = Image.open(io.BytesIO(input_file.content) if isinstance(input_file, InputFile) else input_file)
-        max_width = self.max_width if self.max_width else img.size[0]
-        wpercent = (max_width / float(img.size[0]))
-        hsize = int((float(img.size[1]) * float(wpercent)))
-        img = img.resize((max_width, hsize))
-        return img
-
-class ThreatModelImageVisualizerCapability(AgentCapability, ThreatModelImageVisualizer):
-    def __init__(self, **kwargs):
-        super().__init__()
-        super(AgentCapability, self).__init__(**kwargs)
-    
-    def add_to_agent(self, agent: MultimodalConversableAgent):
-        agent.register_hook("process_all_messages_before_reply", self._add_image_to_messages)
-        
-    def _add_image_to_messages(self, messages):
-        if self.img is None:
-            self.extract_image_from_state()
-            
-        if self.img:
-            messages = messages.copy()
-            img_message = [{
-                "type": "image_url",
-                "image_url": {
-                    "url": self.img,
-                }
-            }]
-            if self.extra_details:
-                img_message.append({
-                    "type": "text",
-                    "text": f"Here are some helpful labels: {self.extra_details}. Use these to help answer the questions."
-                })
-            messages.append({"content": img_message, "role": "user"})
-        else:
-            messages = messages.copy()
-            messages.append({"content": "No threat model exists.", "role": "user"})
-        return messages
