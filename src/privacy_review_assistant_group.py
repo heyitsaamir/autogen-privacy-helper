@@ -63,7 +63,7 @@ class PrivacyReviewAssistantGroup:
             name="Visualizer",
             description="An agent that visualizes the threat model.",
         )
-        visualizer_capability = ThreatModelImageVisualizerCapability(state)
+        visualizer_capability = ThreatModelImageVisualizerCapability(state=state)
         visualizer_capability.add_to_agent(visualizer_assistant)
         return visualizer_assistant
     
@@ -78,11 +78,20 @@ class ThreatModelImageVisualizerCapability(AgentCapability, ThreatModelImageVisu
     def _reply_with_image(self, self2, messages, sender, config):
         if self.img is None:
             self.extract_image_from_state()
+            if self.img:
+                self._convert_to_jpeg_if_needed(self.img)
             
         if self.img:
             return [True, self._convert_image_to_data_uri(self.img)]
         else:
             return [True, "No threat model available"]
+        
+    def _convert_to_jpeg_if_needed(self, image: Image.Image):
+        if image.mode != "RGB":
+            new_image = Image.new("RGBA", image.size, "WHITE") # Create a white rgba background
+            jpeg_img = Image.alpha_composite(new_image, image)
+            self.img = jpeg_img
+        return
         
     def _convert_image_to_data_uri(self, image: Image.Image):
         return pil_to_data_uri(image)

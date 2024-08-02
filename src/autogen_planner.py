@@ -79,17 +79,7 @@ class AutoGenPlanner(Planner):
         if isinstance(message, str) and message.startswith('data:'):
             mime_type = re.search(r'data:(.*?);', message)
             if mime_type is not None and mime_type.group(1) is not None:
-                attachments.append(CardFactory.adaptive_card({
-                    "type": "AdaptiveCard",
-                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                    "version": "1.5",
-                    "body": [
-                        {
-                            "type": "Image",
-                            "url": f"{message}"
-                        }
-                    ]
-                }))
+                attachments.append(Attachment(content_type=mime_type.group(1), content_url=message))
                 message = "👇"
         if len(attachments) == 0:
             attachments.append(create_chat_history_ac(chat_result))

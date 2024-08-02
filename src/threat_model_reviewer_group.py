@@ -11,13 +11,6 @@ from teams.input_file import InputFile
 from state import AppTurnState
 from svg_to_png.svg_to_png import convert_svg_to_png
 
-def get_image(input_file: Union[InputFile, str]):
-    img = Image.open(io.BytesIO(input_file.content) if isinstance(input_file, InputFile) else input_file)
-    wpercent = (400 / float(img.size[0]))
-    hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((400, hsize))
-    return img
-
 class ThreatModelReviewerGroup:
     def __init__(self, llm_config, threat_model_spec: str = """
 1. All nodes (boxes or nodes surrounded by a black border) should be inside a red boundary. Are there any nodes outside the red boundary?
@@ -69,7 +62,7 @@ your clarifying question
             llm_config={"config_list": [self.llm_config],
                         "timeout": 60, "temperature": 0},
         )
-        threat_model_capability = ThreatModelImageVisualizerCapability(state)
+        threat_model_capability = ThreatModelImageVisualizerCapability(state=state, max_width=400)
         threat_model_capability.add_to_agent(answerer_agent)
 
         answer_evaluator_agent = AssistantAgent(
@@ -133,10 +126,11 @@ For each spec criteria that is not met, provide some action items on how to impr
         return groupchat
 
 class ThreatModelImageVisualizer():
-    def __init__(self, state: AppTurnState):
+    def __init__(self, state: AppTurnState, max_width=None):
         self.state = state
         self.img = None
         self.extra_details = None
+        self.max_width = max_width
     
     def extract_image_from_state(self):
         img = None
@@ -144,24 +138,32 @@ class ThreatModelImageVisualizer():
         if self.state.temp.input_files and self.state.temp.input_files[0]:
             if isinstance(self.state.temp.input_files[0], InputFile):
                 if self.state.temp.input_files[0].content_type == 'image/jpeg' or self.state.temp.input_files[0].content_type == 'image/png':
-                    img = get_image(self.state.temp.input_files[0])
+                    img = self._get_image(self.state.temp.input_files[0])
                 elif self.state.temp.input_files[0].content_type == 'application/vnd.microsoft.teams.file.download.info':
                     # make sure it's a threat model file
                     if self.state.temp.input_files[0].content and isinstance(self.state.temp.input_files[0].content, bytes):
                         if self.state.temp.input_files[0].content.startswith(b"<ThreatModel"):
                             svg_str = self.state.temp.input_files[0].content.decode("utf-8")
                             key_label_tuples = convert_svg_to_png(svg_content=svg_str, out_file="threat_model")
-                            img = get_image("threat_model.png")
+                            img = self._get_image("threat_model.png")
                             if key_label_tuples:
                                 for key, label in key_label_tuples:
                                     img_details = img_details + f"\n{key}: {label}" if img_details else f"{key}: {label}"
         self.img = img
         self.extra_details = img_details
+    
+    def _get_image(self, input_file: Union[InputFile, str]):
+        img = Image.open(io.BytesIO(input_file.content) if isinstance(input_file, InputFile) else input_file)
+        max_width = self.max_width if self.max_width else img.size[0]
+        wpercent = (max_width / float(img.size[0]))
+        hsize = int((float(img.size[1]) * float(wpercent)))
+        img = img.resize((max_width, hsize))
+        return img
 
 class ThreatModelImageVisualizerCapability(AgentCapability, ThreatModelImageVisualizer):
-    def __init__(self, state: AppTurnState):
+    def __init__(self, **kwargs):
         super().__init__()
-        super(AgentCapability, self).__init__(state)
+        super(AgentCapability, self).__init__(**kwargs)
     
     def add_to_agent(self, agent: MultimodalConversableAgent):
         agent.register_hook("process_all_messages_before_reply", self._add_image_to_messages)
