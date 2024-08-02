@@ -95,6 +95,8 @@ class ThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelImageVi
             if self.img:
                 jpeg = self.convert_to_jpeg_if_needed(self.img)
                 if jpeg:
+                    # Unfortunately autogen currently doesn't support async nested chats.
+                    # So we need to do this "fire and forget" hack to send the image.
                     ensure_future(self._say_when_evaluating(jpeg))
                 self.resize(self.max_width)
         if self.img:
