@@ -17,7 +17,7 @@ from teams.teams_attachment_downloader.teams_attachment_downloader import TeamsA
 from teams.teams_attachment_downloader.teams_attachment_downloader_options import TeamsAttachmentDownloaderOptions
 from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
 # from botbuilder.azure import BlobStorage, BlobStorageSettings
-from threat_model_reviewer_group import ThreatModelReviewerGroup
+from privacy_review_assistant_group import PrivacyReviewAssistantGroup
 
 from config import Config
 from state import AppTurnState
@@ -27,7 +27,7 @@ import azure.identity
 config = Config()
 def build_llm_config():
     if "OPENAI_KEY" in os.environ:
-        config = {"model": "gpt-4-turbo", "api_key": os.environ["OPENAI_KEY"]}
+        config = {"model": "gpt-4o-mini", "api_key": os.environ["OPENAI_KEY"]}
     elif "AZURE_OPENAI_KEY" in os.environ and "AZURE_OPENAI_ENDPOINT" in os.environ:
         config = {
             "model": "my-gpt-4-deployment",
@@ -63,7 +63,7 @@ if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
 
 storage = MemoryStorage()
 
-threat_model_reviewer_group = ThreatModelReviewerGroup(llm_config=llm_config)
+threat_model_reviewer_group = PrivacyReviewAssistantGroup(llm_config=llm_config)
 
 adapter = TeamsAdapter(config)
 downloader = TeamsAttachmentDownloader(

@@ -1,3 +1,4 @@
+import re
 from typing import List, Callable, Optional, Union
 from datetime import datetime
 from dataclasses import dataclass
@@ -74,6 +75,14 @@ class AutoGenPlanner(Planner):
             message = chat_result.summary
 
         state.conversation.message_history = chat_result.chat_history
+        attachments = []
+        if isinstance(message, str) and message.startswith('data:'):
+            mime_type = re.search(r'data:(.*?);', message)
+            if mime_type is not None and mime_type.group(1) is not None:
+                attachments.append(Attachment(content_type=mime_type.group(1), content_url=message))
+                message = "👇"
+        if len(attachments) == 0:
+            attachments.append(create_chat_history_ac(chat_result))
         return Plan(
             commands=[
                 PredictedSayCommandWithAttachments(
@@ -81,7 +90,7 @@ class AutoGenPlanner(Planner):
                     MessageWithAttachments(
                         'assistant', 
                         content=message, 
-                        attachments=[create_chat_history_ac(chat_result)]
+                            attachments=attachments
                         )
                     )
                 ]
