@@ -4,7 +4,6 @@ Licensed under the MIT License.
 
 Description: initialize the app and listen for `message` activitys
 """
-
 import os
 import sys
 import traceback
