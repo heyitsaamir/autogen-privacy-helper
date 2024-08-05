@@ -13,3 +13,15 @@ class FreeTextAnnotation(Shape):
         x = self.left + self.width / 2 - width / 2
         y = self.top + self.height / 2 - height / 2
         super().add_icon(d, x, y, width, height)
+
+    # Gets whether the text should be centered (normal for nodes, not for labels)
+    def is_text_centered(self):
+        return False
+    
+    # Gets the text line width in pixels.
+    def get_text_line_width(self):
+        return self.width - self.get_left_indent()
+    
+    # Gets the indent from the left for the text in pixels
+    def get_left_indent(self):
+        return 20

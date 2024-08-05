@@ -141,7 +141,7 @@ def convert_svg_to_png(file: str = None, svg_content: str = None, out_file="resu
             key = f'{user_friendly_key} {key_index + 1}'
             name = get_element_name(value)
             key_label_tuples.append((key, name))
-            value.set('custom_key', key)
+            #value.set('custom_key', key)
             key_index += 1
         
         for shape in shapes:
