@@ -3,11 +3,12 @@ from PIL import ImageFont, ImageDraw, Image
 import base64
 from io import BytesIO
 import os
+import re
 
 def calculate_size(name_arg):
     max_width = 0
     num_lines = 0
-    name = name_arg if isinstance(name_arg, list) else name_arg.split("\r\n")
+    name = name_arg if isinstance(name_arg, list) else re.split(r'\r\n|[\r\n]', name_arg)
     for name_part in name:
         if name_part:
             max_width = max(max_width, len(name_part) * 5.6)
