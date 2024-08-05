@@ -1,5 +1,8 @@
 import drawsvg as draw
-from .utils import calculate_size, convert_base64_jpeg_to_png
+from .utils import calculate_size, convert_base64_jpeg_to_png, wrap_text
+
+NODE_TEXT_FONT_SIZE = 11
+INNER_TEXT_RATIO = 0.85
 
 class SVG(draw.DrawingBasicElement):
     TAG_NAME = 'svg'
@@ -19,15 +22,44 @@ class Shape:
         self.left = int(left) + 5
         self.top = int(top) + 5
         self.icons = icons
+
+    # Gets whether the text should be centered (normal for nodes, not for labels)
+    def is_text_centered(self):
+        return True
+    
+    # Gets the text line width in pixels.
+    def get_text_line_width(self):
+        return self.width * INNER_TEXT_RATIO
+    
+    # Gets the indent from the left for the text in pixels
+    def get_left_indent(self):
+        return 0
     
     def add_text(self, d):
         if len(self.name) == 0:
             return
-        
-        text = draw.Text(self.name, x="50%", y="50%", fill="black", font_family="Open Sans", font_size=11, center=True)
-        svg = SVG(self.left, self.top, self.width, self.height)
-        svg.append_child(text)
-        d.append(svg)
+        font_size = NODE_TEXT_FONT_SIZE
+        # Wrapped text
+        lines = wrap_text(self.name, self.get_text_line_width(), font_size)  # Adjusted max width to fit within the circle
+
+        # Calculate the starting position
+        total_text_height = len(lines) * font_size * 1.2
+        start_y = (self.height // 2) - (total_text_height // 2)
+
+        # Add text to SVG
+        for i, line in enumerate(lines):
+            text = draw.Text(line, font_size, self.width // 2, start_y + i * font_size * 1.2, center=self.is_text_centered(), valign='middle', font_family="Open Sans")
+            svg = SVG(self.left + self.get_left_indent(), self.top, self.width - self.get_left_indent(), self.height)
+            svg.append_child(text)
+            d.append(svg)
+#    def add_text(self, d):
+#        if len(self.name) == 0:
+#            return
+#       
+#        text = draw.Text(self.name, x="50%", y="50%", fill="black", font_family="Open Sans", font_size=11, center=True)
+#        svg = SVG(self.left, self.top, self.width, self.height)
+#        svg.append_child(text)
+#        d.append(svg)
         # ps = ''
         # for name_part in self.name:
         #     p = draw.Raw(
