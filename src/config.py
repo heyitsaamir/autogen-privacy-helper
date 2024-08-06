@@ -20,6 +20,9 @@ class Config:
     AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
     AZURE_SEARCH_SERVICE_ENDPOINT = os.environ.get("AZURE_SEARCH_SERVICE_ENDPOINT", "")
     AZURE_SEARCH_API_KEY = os.environ.get("AZURE_SEARCH_API_KEY")
+    AZURE_MANAGED_IDENTITY_CLIENT_ID = os.environ.get("AZURE_MANAGED_IDENTITY_CLIENT_ID")
+    AZURE_LLM_MODEL = os.environ.get("AZURE_LLM_MODEL")
+    AZURE_LLM_BASE_URL = os.environ.get("AZURE_LLM_BASE_URL")
 
     def build_llm_config(self):
         if self.OPENAI_KEY:
@@ -32,6 +35,21 @@ class Config:
                 "api_key": self.AZURE_OPENAI_KEY,
                 "base_url": self.AZURE_OPENAI_ENDPOINT,
             }
+        elif self.AZURE_MANAGED_IDENTITY_CLIENT_ID and self.AZURE_LLM_MODEL and self.AZURE_LLM_BASE_URL:
+            import azure.identity
+            autogen_llm_config = {
+                "model": self.AZURE_LLM_MODEL,
+                "base_url": self.AZURE_LLM_BASE_URL,
+                "api_type": "azure",
+                "api_version": "2023-05-15",
+                "cache_seed": None,
+                "azure_ad_token_provider": azure.identity.get_bearer_token_provider(
+                    azure.identity.DefaultAzureCredential(
+                        managed_identity_client_id = self.AZURE_MANAGED_IDENTITY_CLIENT_ID,
+                        exclude_environment_credential = True
+                    ), "https://cognitiveservices.azure.com/.default"
+                )
+            }
         else:
-            return None
+            raise ValueError("Neither OPENAI_KEY nor AZURE_OPENAI_KEY nor azure managed identity (AZURE_MANAGED_IDENTITY_CLIENT_ID, AZURE_LLM_MODEL, AZURE_LLM_BASE_URL) environment variables are set.")
         return autogen_llm_config
