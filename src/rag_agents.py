@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+import os
 from typing import List, Union, Tuple
 from autogen.agentchat.contrib.vectordb.base import QueryResults, VectorDB, Document
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
@@ -11,6 +12,8 @@ from azure.core.exceptions import ResourceNotFoundError
 from config import Config
 
 def build_config(suffix: str, previous_day_index: int = 0):
+    if os.getenv("SEARCH_INDEX_PREFIX") is not None:
+        return f"{os.getenv('SEARCH_INDEX_PREFIX')}-{suffix}"
     # Get the current date
     date = datetime.now()
     date = date - timedelta(days=previous_day_index)
