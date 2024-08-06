@@ -5,6 +5,7 @@ from state import AppTurnState
 from rag_agents import setup_rag_assistant
 from threat_model_reviewer_group import ThreatModelReviewerGroup
 from threat_model_visualizer import ThreatModelImageVisualizerCapability
+from xml_threat_model_reviewer import setup_xml_threat_model_reviewer
 
 class PrivacyReviewAssistantGroup:
     def __init__(self, llm_config):
@@ -14,8 +15,9 @@ class PrivacyReviewAssistantGroup:
         rag_assistant = setup_rag_assistant(self.llm_config)
         threat_modeling_assistant = self.setup_threat_modeling_assistant(context, state, user_agent)
         visualizer_agent = self.setup_visualizer_assistant(context, state, user_agent)
+        xml_threat_model_reviewer = setup_xml_threat_model_reviewer(context, self.llm_config, state)
         group = GroupChat(
-            agents=[user_agent, rag_assistant, threat_modeling_assistant, visualizer_agent],
+            agents=[user_agent, rag_assistant, threat_modeling_assistant, visualizer_agent, xml_threat_model_reviewer],
             messages=[],
             max_round=100,
             speaker_transitions_type="allowed",
@@ -24,6 +26,7 @@ class PrivacyReviewAssistantGroup:
                 rag_assistant: [user_agent],
                 threat_modeling_assistant: [user_agent],
                 visualizer_agent: [user_agent],
+                xml_threat_model_reviewer: [user_agent],
             },
         )
         
@@ -35,7 +38,7 @@ class PrivacyReviewAssistantGroup:
             return message_sender_name != user_agent.name
         assistant = AssistantAgent(
             name="Threat_Model_Evaluator",
-            description="An agent that manages a group chat for threat modeling validation and evaluation.",
+            description="An agent that manages a group chat for threat modeling validation and evaluation when the user does not request XML validation.",
             is_termination_msg=terminate_chat
         )
         
