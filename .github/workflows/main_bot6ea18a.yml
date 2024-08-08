@@ -55,6 +55,6 @@ jobs:
         id: deploy-to-webapp
         with:
           app-name: 'bot6ea18a'
-          slot-name: 'Production'
+          slot-name: 'staging'
           images: ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
           
