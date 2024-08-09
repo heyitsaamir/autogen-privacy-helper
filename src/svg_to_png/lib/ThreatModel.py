@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
+import re
 
 from .FreeTextAnnotation import FreeTextAnnotation
 from .GenericDataFlow import GenericDataFlow
@@ -94,10 +95,11 @@ class ThreatModel:
             self.boundaries.append(shape)
         elif generic_type_id == "GE.A":
             shape = FreeTextAnnotation(generic_type_id, type, name, icons, *get_shape_details(el))
-            self.labels.append(shape)
+            self.annotations.append(shape)
         elif generic_type_id == "GE.DF":
             shape = GenericDataFlow(generic_type_id, type, name, icons, *get_curve_details(el))
             self.curves.append(shape)
+            self.labels.append(name)
         elif generic_type_id == "GE.TB.L":
             shape = GenericTrustLineBoundary(generic_type_id, type, name, icons, *get_curve_details(el))
             self.trust_line_boundaries.append(shape)
@@ -114,6 +116,7 @@ class ThreatModel:
         self.nodes = []
         self.labels = []
         self.curves = []
+        self.annotations = []
         self.trust_line_boundaries = []
         
         ET.register_namespace(
@@ -191,15 +194,25 @@ class ThreatModel:
             boundary.convert_to_svg(d)
         for node in self.nodes:
             node.convert_to_svg(d)
-        for label in self.labels:
-            label.convert_to_svg(d)
         for curve in self.curves:
             curve.convert_to_svg(d)
         for trust_line_boundary in self.trust_line_boundaries:
             trust_line_boundary.convert_to_svg(d)
+        for annotation in self.annotations:
+            annotation.convert_to_svg(d)
 
     def get_label_names(self):
-        return [label.name for label in self.labels]
+        label_names = [curve.name for curve in self.curves]
+        def sort_key(s):
+            match = re.match(r'^(\d+)', s)
+            if match:
+                num_part = int(match.group(1))
+            else:
+                num_part = -1
+            return (num_part, s)
+
+        # if they are numbered, label names sorted can be easier for the model to handle sequences
+        return sorted(label_names, key=sort_key)
     
     def get_no_threat_boundary_node_names(self):
         return [node.name for node in self.nodes if node.group is None]

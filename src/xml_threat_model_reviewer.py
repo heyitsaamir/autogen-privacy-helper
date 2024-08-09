@@ -91,12 +91,19 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
 
 def setup_xml_threat_model_reviewer(llm_config, context: TurnContext, state: AppTurnState, threat_model_spec: str = """
     1. All nodes should be inside a boundary. Are there any nodes not in a boundary?
-    2. All labels for the should be numbered sequential numbers. These numbers indicate the order in which the flow happens. If there are numbers in the sequence missing or some labels are not numbered, please say which ones.
+    2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you
+        the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", this is valid, because all numbers between 1 and 3 are there, but if it were "1. FlowA" and second 
+        "4. FlowB" and third, "2. FlowC" then this would be invalid, because 3 is missing.
     """):
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",
-        description=f"""An agent that manages a group chat for threat modeling validation and evaluation. The details for the threat model are given.
-            The agent will do validation based on these rules: {threat_model_spec}. The agent will report in detail which rules are correct and which ones have been broken.""",
+        description=f"""You are a threat model evaluator that evaluates threat models based on given data and rules. """,
+        system_message=f"""You are a helpful threat model file evaluator that evaluates whether the data is correct from given rules
+            using only the data given to you.
+            These are the rules you need to do evaluation based on: {threat_model_spec}. Your role is to report back what are the 
+            issues with the data given the rules. When responding, do not respond referring to the rules by number, but instead 
+            describe the rule to the user. Please respond in a clear bullet pointed answer on what the issues are with the data.
+            Certainly, never respond with code that the user should try to execute.""",
         llm_config={"config_list": [llm_config],
                         "timeout": 60, "temperature": 0},
     )
