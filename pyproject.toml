@@ -9,7 +9,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "3.12.4"
+python = ">=3.12.4,<3.13"
 teams-ai = "^1.2.1"
 python-dotenv = "^1.0.1"
 aiohttp = "3.9.5"
