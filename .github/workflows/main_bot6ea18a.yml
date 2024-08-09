@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - bot6ea18a
+name: Build and deploy Python app to Azure Web App
 
 on:
   push:
@@ -30,11 +30,11 @@ jobs:
           docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
           docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
 
-  deploy:
+  deploy-to-staging:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: 'Staging'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write #This is required for requesting the JWT
@@ -50,11 +50,29 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_57D42CA1C3734AAC8B92D16D7ED02E9C }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BFF9A8CACCF7422B8FEA5329FA9B864F }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: 'Deploy to Staging Slot'
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
         with:
-          app-name: 'bot6ea18a'
+          app-name: ${{ env.WEBAPP_NAME }}
           slot-name: 'staging'
           images: ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
           
+  release-to-prod:
+    name: Release to prod
+    needs: deploy-to-staging
+    runs-on: ubuntu-latest
+    environment:
+      name: 'Production'
+      url: 'https://${{ env.WEBAPP_NAME }}.azurewebsites.net/'
+
+    steps:
+    - name: Log into Azure CLI with service principal
+      uses: azure/login@v1.1
+      with:
+        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_E9F3ACF4B0A2444BB14E77D37C3CD07D }}
+        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_57D42CA1C3734AAC8B92D16D7ED02E9C }}
+        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BFF9A8CACCF7422B8FEA5329FA9B864F }}
+
+    - name: Swap slots
+      run: az webapp deployment slot swap -s staging -n ${{ env.WEBAPP_NAME }} -g ${{ env.RESOURCE_GROUP }}
