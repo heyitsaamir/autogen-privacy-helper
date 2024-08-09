@@ -1,0 +1,27 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+
+name: Release to Prod
+
+on:
+  workflow_dispatch:
+
+jobs:     
+  release-to-prod:
+    name: Release to prod
+    runs-on: ubuntu-latest
+    environment:
+      name: 'Production'
+      url: 'https://${{ env.WEBAPP_NAME }}.azurewebsites.net/'
+
+    steps:
+    - name: Log into Azure CLI with service principal
+      uses: azure/login@v1.1
+      with:
+        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_E9F3ACF4B0A2444BB14E77D37C3CD07D }}
+        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_57D42CA1C3734AAC8B92D16D7ED02E9C }}
+        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BFF9A8CACCF7422B8FEA5329FA9B864F }}
+
+    - name: Swap slots
+      run: az webapp deployment slot swap -s staging -n ${{ env.WEBAPP_NAME }} -g ${{ env.RESOURCE_GROUP }}
