@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Log into Azure CLI with service principal
-      uses: azure/login@v1.1
+      uses: azure/login@v1
       with:
         client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_E9F3ACF4B0A2444BB14E77D37C3CD07D }}
         tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_57D42CA1C3734AAC8B92D16D7ED02E9C }}
