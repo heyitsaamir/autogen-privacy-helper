@@ -20,6 +20,7 @@ class ThreatModelDataExtractor(ThreatModelImageVisualizer):
     def __init__(self, state: AppTurnState):
         self.label_names = None
         self.no_boundary_nodes = None
+        self.state = state
         super(ThreatModelImageVisualizer, self).__init__()
     
     def extract_data_from_state(self):
@@ -39,6 +40,7 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
         self.say_when_evaluating = say_when_evaluating
         self.context = context
         self.max_width = max_width
+        self.img = None
         
         super().__init__()
         super(AgentCapability, self).__init__(**kwargs)
@@ -59,8 +61,9 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
                 self.resize(self.max_width)
         if self.label_names is not None or self.no_boundary_nodes is not None:
             messages = messages.copy()
-            content = f"""The nodes with no boundaries are {self.no_boundary_nodes}.
-            The list of label names is {self.label_names}."""
+            content = f"""The file details for the file you need to validate are: 
+            1. The nodes with no boundaries are {self.no_boundary_nodes}.
+            2. The list of label names is {self.label_names}."""
             messages.append({"content": content, "role": "user"})
         else:
             messages = messages.copy()
@@ -87,12 +90,12 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
                 )
 
 def setup_xml_threat_model_reviewer(llm_config, context: TurnContext, state: AppTurnState, threat_model_spec: str = """
-    1. All nodes (boxes or nodes surrounded by a black border) should be inside a boundary. Are there any nodes not in a boundary?
+    1. All nodes should be inside a boundary. Are there any nodes not in a boundary?
     2. All labels for the should be numbered sequential numbers. These numbers indicate the order in which the flow happens. If there are numbers in the sequence missing or some labels are not numbered, please say which ones.
     """):
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",
-        description=f"""An agent that manages a group chat for threat modeling validation and evaluation, if the user specifically requests XML validation.
+        description=f"""An agent that manages a group chat for threat modeling validation and evaluation. The details for the threat model are given.
             The agent will do validation based on these rules: {threat_model_spec}. The agent will report in detail which rules are correct and which ones have been broken.""",
         llm_config={"config_list": [llm_config],
                         "timeout": 60, "temperature": 0},
