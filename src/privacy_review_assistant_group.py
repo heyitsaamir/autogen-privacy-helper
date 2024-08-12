@@ -38,7 +38,7 @@ class PrivacyReviewAssistantGroup:
             return message_sender_name != user_agent.name
         assistant = AssistantAgent(
             name="Threat_Model_Evaluator",
-            description="An agent that manages a group chat for threat modeling validation and evaluation but should never be used the user does requests XML validation, ONLY when the user requests image validateion.",
+            description="An agent that manages a group chat for threat modeling validation and evaluation.",
             is_termination_msg=terminate_chat
         )
         
