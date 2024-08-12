@@ -14,7 +14,7 @@ class PrivacyReviewAssistantGroup:
     def group_chat_builder(self, context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
         use_xml_assistant = state.conversation.use_xml_evaluator
         rag_assistant = setup_rag_assistant(self.llm_config)
-        threat_modeling_assistant = setup_xml_threat_model_reviewer(self.llm_config, context, state) if use_xml_assistant else setup_visualizer_agent(context, state, user_agent)
+        threat_modeling_assistant = setup_xml_threat_model_reviewer(self.llm_config, context, state) if use_xml_assistant else setup_visualizer_agent(self.llm_config, context, state)
         visualizer_agent = self.setup_visualizer_assistant(context, state, user_agent)
         group = GroupChat(
             agents=[user_agent, rag_assistant, visualizer_agent, threat_modeling_assistant],

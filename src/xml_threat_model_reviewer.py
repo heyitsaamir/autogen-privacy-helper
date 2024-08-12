@@ -50,7 +50,7 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
         
     def _add_data_to_messages(self, messages):
         if self.img is None:
-            self.extract_image_from_state()
+            self.extract_image_from_state(build_for_ai_context=False)
             self.extract_data_from_state()
             if self.img:
                 jpeg = self.convert_to_jpeg_if_needed(self.img)

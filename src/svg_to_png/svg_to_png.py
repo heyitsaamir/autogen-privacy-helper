@@ -1,12 +1,13 @@
+from typing import Optional
 import drawsvg as draw
 from .lib.ThreatModel import ThreatModel
 from .lib.utils import get_bbox
 
-def load_threat_model(file: str = None, svg_content: str = None):
-    return ThreatModel(file, svg_content)
+def load_threat_model(file: Optional[str] = None, svg_content: Optional[str] = None,build_for_ai_context: bool = False):
+    return ThreatModel(file, svg_content, build_for_ai_context)
 
-def convert_svg_to_png(file: str = None, svg_content: str = None, out_file="result"):
-    threat_model = ThreatModel(file, svg_content)
+def convert_svg_to_png(file: Optional[str] = None, svg_content: Optional[str] = None, out_file="result", build_for_ai_context: bool = False):
+    threat_model = ThreatModel(file, svg_content, build_for_ai_context)
     
     d = draw.Drawing(2000, 2000)
     d.append(draw.elements.Raw('<style>@import url("https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700,700i");</style>'))
