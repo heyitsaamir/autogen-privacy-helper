@@ -1,9 +1,9 @@
-from autogen import AssistantAgent, GroupChat, GroupChatManager, Agent
+from autogen import AssistantAgent, GroupChat, Agent
 from botbuilder.core import TurnContext
 
 from state import AppTurnState
 from rag_agents import setup_rag_assistant
-from threat_model_reviewer_group import ThreatModelReviewerGroup
+from visualizer_agent import setup_visualizer_agent
 from threat_model_visualizer import ThreatModelImageVisualizerCapability
 
 class PrivacyReviewAssistantGroup:
@@ -12,7 +12,7 @@ class PrivacyReviewAssistantGroup:
         
     def group_chat_builder(self, context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
         rag_assistant = setup_rag_assistant(self.llm_config)
-        threat_modeling_assistant = self.setup_threat_modeling_assistant(context, state, user_agent)
+        threat_modeling_assistant = setup_visualizer_agent(self.llm_config, context, state)
         visualizer_agent = self.setup_visualizer_assistant(context, state, user_agent)
         group = GroupChat(
             agents=[user_agent, rag_assistant, threat_modeling_assistant, visualizer_agent],
@@ -28,33 +28,6 @@ class PrivacyReviewAssistantGroup:
         )
         
         return group
-    
-    def setup_threat_modeling_assistant(self, context: TurnContext, state: AppTurnState, user_agent: Agent) -> Agent:
-        def terminate_chat(message):
-            message_sender_name = message.get("name", "")
-            return message_sender_name != user_agent.name
-        assistant = AssistantAgent(
-            name="Threat_Model_Evaluator",
-            description="An agent that manages a group chat for threat modeling validation and evaluation.",
-            is_termination_msg=terminate_chat
-        )
-        
-        threat_modeling_group = ThreatModelReviewerGroup(llm_config=self.llm_config).group_chat_builder(context, state, assistant)
-        threat_modeling_group_manager = GroupChatManager(
-            groupchat=threat_modeling_group,
-            llm_config=self.llm_config,
-        )
-        def trigger(sender):
-            return sender not in [assistant]
-        assistant.register_nested_chats([
-            {
-                "recipient": threat_modeling_group_manager,
-                "sender": assistant,
-                "summary_method": "last_msg",
-                "max_turns": 1,
-            },
-        ], trigger=trigger)
-        return assistant
 
     def setup_visualizer_assistant(self, _context: TurnContext, state: AppTurnState, _user_agent: Agent) -> Agent:        
         visualizer_assistant = AssistantAgent(

@@ -123,7 +123,7 @@ class ThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelImageVi
         new_img = Image.new(self.img.mode, self.img.size)
         wpercent = (max_width / float(self.img.size[0]))
         hsize = int((float(self.img.size[1]) * float(wpercent)))
-        self.img = new_img.resize((max_width, hsize))
+        self.img = self.img.resize((max_width, hsize))
     
     async def _say_when_evaluating(self, img: Image.Image):
         if self.say_when_evaluating:
