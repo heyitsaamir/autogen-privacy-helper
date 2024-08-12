@@ -90,10 +90,10 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
                 )
 
 def setup_xml_threat_model_reviewer(llm_config, context: TurnContext, state: AppTurnState, threat_model_spec: str = """
-    1. All nodes should be inside a boundary. Are there any nodes not in a boundary?
-    2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you
-        the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", this is valid, because all numbers between 1 and 3 are there, but if it were "1. FlowA" and second 
-        "4. FlowB" and third, "2. FlowC" then this would be invalid, because 3 is missing.
+1. All nodes should be inside a boundary. Are there any nodes not in a boundary?
+2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you
+the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", this is valid, because all numbers between 1 and 3 are there, but if it were "1. FlowA" and second 
+"4. FlowB" and third, "2. FlowC" then this would be invalid, because 3 is missing.
     """):
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",

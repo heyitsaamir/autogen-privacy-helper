@@ -50,6 +50,7 @@ def get_element_name(shape):
 def is_in(candidate, boundary):
     return boundary.left <= candidate.left and boundary.top <= candidate.top and boundary.left + boundary.width >= candidate.left + candidate.width and boundary.top + boundary.height >= candidate.top + candidate.height
 
+# TODO add trust line boundaries
 def set_appropriate_groups(candidate, boundary):
     if is_in(candidate, boundary):
         if candidate.group is None:
