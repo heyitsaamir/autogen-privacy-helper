@@ -7,15 +7,14 @@ from visualizer_agent import setup_visualizer_agent
 from threat_model_visualizer import ThreatModelImageVisualizerCapability
 from xml_threat_model_reviewer import setup_xml_threat_model_reviewer
 
-USE_XML_ASSISTANT=True
-
 class PrivacyReviewAssistantGroup:
     def __init__(self, llm_config):
         self.llm_config = llm_config
         
     def group_chat_builder(self, context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
+        use_xml_assistant = state.conversation.use_xml_evaluator
         rag_assistant = setup_rag_assistant(self.llm_config)
-        threat_modeling_assistant = setup_xml_threat_model_reviewer(self.llm_config, context, state) if USE_XML_ASSISTANT else setup_visualizer_agent(context, state, user_agent)
+        threat_modeling_assistant = setup_xml_threat_model_reviewer(self.llm_config, context, state) if use_xml_assistant else setup_visualizer_agent(context, state, user_agent)
         visualizer_agent = self.setup_visualizer_assistant(context, state, user_agent)
         group = GroupChat(
             agents=[user_agent, rag_assistant, visualizer_agent, threat_modeling_assistant],
