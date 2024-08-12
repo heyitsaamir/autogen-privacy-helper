@@ -5,6 +5,9 @@ from state import AppTurnState
 from rag_agents import setup_rag_assistant
 from threat_model_reviewer_group import ThreatModelReviewerGroup
 from threat_model_visualizer import ThreatModelImageVisualizerCapability
+from xml_threat_model_reviewer import setup_xml_threat_model_reviewer
+
+USE_XML_ASSISTANT=True
 
 class PrivacyReviewAssistantGroup:
     def __init__(self, llm_config):
@@ -12,18 +15,18 @@ class PrivacyReviewAssistantGroup:
         
     def group_chat_builder(self, context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
         rag_assistant = setup_rag_assistant(self.llm_config)
-        threat_modeling_assistant = self.setup_threat_modeling_assistant(context, state, user_agent)
+        threat_modeling_assistant = setup_xml_threat_model_reviewer(self.llm_config, context, state) if USE_XML_ASSISTANT else self.setup_threat_modeling_assistant(context, state, user_agent)
         visualizer_agent = self.setup_visualizer_assistant(context, state, user_agent)
         group = GroupChat(
-            agents=[user_agent, rag_assistant, threat_modeling_assistant, visualizer_agent],
+            agents=[user_agent, rag_assistant, visualizer_agent, threat_modeling_assistant],
             messages=[],
             max_round=100,
             speaker_transitions_type="allowed",
             allowed_or_disallowed_speaker_transitions={
-                user_agent: [rag_assistant, threat_modeling_assistant, visualizer_agent],
+                user_agent: [rag_assistant, visualizer_agent, threat_modeling_assistant],
                 rag_assistant: [user_agent],
-                threat_modeling_assistant: [user_agent],
                 visualizer_agent: [user_agent],
+                threat_modeling_assistant: [user_agent],
             },
         )
         

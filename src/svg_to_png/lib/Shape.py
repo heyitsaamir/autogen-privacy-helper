@@ -13,7 +13,7 @@ class SVG(draw.DrawingBasicElement):
         self.children.append(animate_element)
     
 class Shape:
-    def __init__(self, category, type, name: str, icons: dict, height, width, left, top):
+    def __init__(self, category, type, name: str, icons: dict, height, width, left, top):       
         self.category = category
         self.type = type
         self.name = name
@@ -22,6 +22,7 @@ class Shape:
         self.left = int(left) + 5
         self.top = int(top) + 5
         self.icons = icons
+        self.group = None
 
     # Gets whether the text should be centered (normal for nodes, not for labels)
     def is_text_centered(self):
@@ -78,7 +79,7 @@ class Shape:
         # d.append(foreign_object)
         
     def add_icon(self, d, x = None, y = None, width = None, height = None):
-        icon = self.icons[self.type]
+        icon = self.icons.get(self.type)
         if not icon:
             return
         iconHeight = height if height is not None else max(min(90, self.height / 2.5), 40)
