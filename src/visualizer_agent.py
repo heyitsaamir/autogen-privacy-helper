@@ -21,7 +21,10 @@ class Spec(BaseModel):
 
 specs = [
     Spec(id=1, spec="All nodes should be inside a trust boundary", instructions_to_solve="""
-A node is a box or a node surrounded by a black border. A trust boundary is a red boundary. A trust boundary can also be a concave line (this is a lined-trust boundary). The nodes that are inside the concave line are inside a lined-trust boundary.
+A node is a box or a node surrounded by a black border. 
+A trust boundary is a red boundary or a red boundary line. 
+If a node is surrounded by a red boundary, it is inside a trust boundary.
+If a node is behind a red boundary line, it is inside a trust boundary. A node is considered to be behind a trust boundary line if the node is on the concave side of the trust boundary line.
 You should ensure that all nodes are inside a trust boundary. If any node is outside a trust boundary, indicate which node. in your response.
 """, hints_to_send=["Trust Boundary", "Node"]),
     Spec(id=2, spec="The data flow should be easy to understand", instructions_to_solve="""
@@ -128,7 +131,8 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
             "recipient": questioner_agent,
             "sender": answerer_agent,
             "summary_method": summarize,
+            "chat_id": 1,
         },
-    ], trigger=lambda sender: sender not in [assistant])
+    ], trigger=lambda sender: sender not in [assistant], use_async=True)
 
     return assistant

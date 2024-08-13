@@ -141,9 +141,10 @@ def setup_rag_assistant(llm_config):
             "recipient": rag_assistant_agent,
             "sender": rag_proxy_agent,
             "summary_method": "last_msg",
-            "message": message_generator
+            "message": message_generator,
+            "chat_id": 1,
         },
-    ], trigger=assistant)
+    ], trigger=assistant, use_async=True)
     
     def trigger(sender):
         return sender not in [assistant] # To prevent the assistant from triggering itself
@@ -166,7 +167,8 @@ def setup_rag_assistant(llm_config):
             "sender": assistant,
             "summary_method": custom_summary_method,
             "max_turns": 1,
+            "chat_id": 1,
         },
-    ], trigger=trigger)
+    ], trigger=trigger, use_async=True)
         
     return assistant
