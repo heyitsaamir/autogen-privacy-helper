@@ -3,18 +3,18 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 
 from botbuilder.core import Storage, TurnContext
 from teams.state import ConversationState, TempState, TurnState, UserState
-from autogen import ConversableAgent
 from datetime import datetime
 
 class AppConversationState(ConversationState):
-    message_history: List[Dict] | None = None
+    message_history: Optional[List[Dict]] = None
     is_waiting_for_user_input: bool = False
-    started_waiting_for_user_input_at: datetime | str | None = None
-    spec_url: str | None = None
+    started_waiting_for_user_input_at: Optional[Union[datetime, str]] = None
+    spec_url: Optional[str] = None
+    use_xml_evaluator: bool = True
 
     @classmethod
     async def load(
@@ -28,7 +28,6 @@ class AppConversationState(ConversationState):
         self.started_waiting_for_user_input_at = None
         self.spec_url = None
         await self.save(context)
-
 
 class AppTurnState(TurnState[AppConversationState, UserState, TempState]):
     conversation: AppConversationState

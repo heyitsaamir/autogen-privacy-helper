@@ -1,3 +1,4 @@
+from typing import Optional, Literal, Dict, List
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
 import re
@@ -22,6 +23,18 @@ THREAT_MODELING_XMLNS = "{http://schemas.datacontract.org/2004/07/ThreatModeling
 ABSTRACTS_XMLNS = "{http://schemas.datacontract.org/2004/07/ThreatModeling.Model.Abstracts}"
 ARRAY_XMLNS = "{http://schemas.microsoft.com/2003/10/Serialization/Arrays}"
 KNOWLEDGE_BASE_XMLNS = "{http://schemas.datacontract.org/2004/07/ThreatModeling.KnowledgeBase}"
+
+type User_Friendly_Block_Types = Literal["Boundary", "Annotation", "External Interactor", "Node", "Data Store", "Data Flow", "Trust Boundary"]
+type Key_Label_Map = Dict[User_Friendly_Block_Types, List[Dict[Literal["index", "key", "name"], str]]]
+element_to_user_friendly_key: Dict[str, User_Friendly_Block_Types] = {
+    "GE.TB.B": "Boundary",
+    "GE.A": "Annotation",
+    "GE.EI": "External Interactor",
+    "GE.P": "Node",
+    "GE.DS": "Data Store",
+    "GE.DF": "Data Flow",
+    "GE.TB.L": "Trust Boundary"
+}
         
 def get_shape_details(shape):
     height = shape.find(build_tag(ABSTRACTS_XMLNS, "Height")).text
@@ -74,6 +87,7 @@ def set_groups(nodes, boundaries):
             set_appropriate_groups(node, boundary)
 
 class ThreatModel:
+    key_label_map: Key_Label_Map
 
     def add_element(self, el: Element, icons: dict):
         generic_type_id = el.find(build_tag(ABSTRACTS_XMLNS, "GenericTypeId")).text
@@ -82,7 +96,6 @@ class ThreatModel:
         type = any_type_properties[0][0].text
         name = el.get('custom_key') if el.get('custom_key') else get_element_name(el)
         if generic_type_id == "GE.DS":
-
             shape = GenericDataStore(generic_type_id, type, name, icons, *get_shape_details(el))
             self.nodes.append(shape)
         elif generic_type_id == "GE.EI":
@@ -109,8 +122,15 @@ class ThreatModel:
             shape = None
 
 
-    def __init__(self, file: str = None, svg_content: str = None):
-        if not file and not svg_content:
+    def __init__(self, file: Optional[str] = None, svg_content: Optional[str] = None, build_for_ai_context: bool = False):
+        ET.register_namespace(
+            'xmlns', 'http://schemas.datacontract.org/2004/07/ThreatModeling.Model')
+        if file:
+            tree = ET.parse(file)
+            root = tree.getroot()
+        elif svg_content:
+            root = ET.fromstring(svg_content)
+        else:
             raise Exception("Either file or svg_content should be provided")
         
         self.boundaries = []
@@ -119,14 +139,6 @@ class ThreatModel:
         self.curves = []
         self.annotations = []
         self.trust_line_boundaries = []
-        
-        ET.register_namespace(
-            'xmlns', 'http://schemas.datacontract.org/2004/07/ThreatModeling.Model')
-        if file:
-            tree = ET.parse(file)
-            root = tree.getroot()
-        else:
-            root = ET.fromstring(svg_content)
             
         knowledgeBase = root.find(build_tag(
             THREAT_MODELING_XMLNS, 'KnowledgeBase'))
@@ -161,34 +173,59 @@ class ThreatModel:
         tab_lines = tab.find(build_tag(THREAT_MODELING_XMLNS, "Lines"))
 
         borders = tab_borders.findall(build_tag(ARRAY_XMLNS, "KeyValueOfguidanyType"))
-        key_label_tuples = []
-        key_index = 0
+        key_label_map: Key_Label_Map = {}
+        element_to_key_index = {
+            "GE.TB.B": 0,
+            "GE.A": 0,
+            "GE.EI": 0,
+            "GE.P": 0,
+            "GE.DS": 0,
+            "GE.DF": 0,
+            "GE.TB.L": 0
+        }
             
         for border in borders:
             value = border.find(build_tag(ARRAY_XMLNS, "Value"))
+            if not value:
+                continue
             generic_type_id = value.find(build_tag(ABSTRACTS_XMLNS, "GenericTypeId")).text
-            if generic_type_id == "GE.TB.B":
-                user_friendly_key = "Boundary"
-                key = f'Boundary {key_index + 1}'
+            self.generate_custom_key(build_for_ai_context, key_label_map, element_to_key_index, value, generic_type_id)
+            self.add_element(value, icons)
+        
+        if tab_lines is not None:
+            lines = tab_lines.findall(build_tag(ARRAY_XMLNS, "KeyValueOfguidanyType"))
+            for line in lines:
+                value = line.find(build_tag(ARRAY_XMLNS, "Value"))
+                if not value:
+                    continue
+                generic_type_id = value.find(build_tag(ABSTRACTS_XMLNS, "GenericTypeId")).text
+                self.generate_custom_key(build_for_ai_context, key_label_map, element_to_key_index, value, generic_type_id)
                 self.add_element(value, icons)
+        
+        # sort all the key_label_map
+        for key in key_label_map:
+            key_label_map[key] = sorted(key_label_map[key], key=lambda x: x['index'])
+        
+        self.key_label_map = key_label_map
+        set_groups(self.nodes, self.boundaries)
+
+    def generate_custom_key(self, build_for_ai_context, key_label_map, element_to_key_index, value, generic_type_id):
+        if build_for_ai_context:
+            if isinstance(generic_type_id, str):
+                user_friendly_key = element_to_user_friendly_key.get(generic_type_id, "Element")
+                key_index = element_to_key_index[generic_type_id]
+                element_to_key_index[generic_type_id] += 1
             else:
-                if generic_type_id == "GE.A":
-                    user_friendly_key = "Annotation"
-                else:
-                    user_friendly_key = "Node"
-                self.add_element(value, icon)
+                raise ValueError(f"Unknown generic_type_id: {generic_type_id}")
             key = f'{user_friendly_key} {key_index + 1}'
             name = get_element_name(value)
-            key_label_tuples.append((key, name))
-            key_index += 1
-            
-        lines = tab_lines.findall(build_tag(ARRAY_XMLNS, "KeyValueOfguidanyType"))
-        for line in lines:
-            value = line.find(build_tag(ARRAY_XMLNS, "Value"))
-            self.add_element(value, icons)
-                
-        self.key_label_tuples = key_label_tuples
-        set_groups(self.nodes, self.boundaries)
+            key_label_map[user_friendly_key] = [] if not key_label_map.get(user_friendly_key) else key_label_map[user_friendly_key]
+            key_label_map[user_friendly_key].append({
+                "index": key_index + 1,
+                "key": key,
+                "name": name,
+            })
+            value.set('custom_key', key)
 
     def convert_to_svg(self, d):
         for boundary in self.boundaries:

@@ -86,6 +86,20 @@ async def on_login(context: TurnContext, state: AppTurnState):
 
     return True
 
+@app.message('/useVisual')
+async def set_to_visual(context: TurnContext, state: AppTurnState):
+    state.conversation.use_xml_evaluator = False
+    await state.save(context)
+    await context.send_activity("Ready to use visual evaluator")
+    return True
+
+@app.message('/useXML')
+async def set_to_xml(context: TurnContext, state: AppTurnState):
+    state.conversation.use_xml_evaluator = True
+    await state.save(context)
+    await context.send_activity("Ready to use XML evaluator")
+    return True
+
 
 @app.turn_state_factory
 async def turn_state_factory(context: TurnContext):
