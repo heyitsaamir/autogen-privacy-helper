@@ -49,6 +49,7 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
         agent.register_hook("process_all_messages_before_reply", self._add_data_to_messages)
         
     def _add_data_to_messages(self, messages):
+
         if self.img is None:
             self.extract_image_from_state(build_for_ai_context=False)
             self.extract_data_from_state()
@@ -97,7 +98,7 @@ the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", thi
     """):
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",
-        description=f"""You are a threat model evaluator that evaluates threat models based on given data and rules. """,
+        description="You are a threat model evaluator that evaluates threat models based on given data and rules.",
         system_message=f"""You are a helpful threat model file evaluator that evaluates whether the data is correct from given rules
             using only the data given to you.
             These are the rules you need to do evaluation based on: {threat_model_spec}. Your role is to report back what are the 

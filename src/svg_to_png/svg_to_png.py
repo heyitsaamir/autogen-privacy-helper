@@ -23,4 +23,4 @@ def convert_svg_to_png(file: Optional[str] = None, svg_content: Optional[str] = 
     d.save_svg(f'{file_name}.svg')
     d.save_png(f'{file_name}.png')
         
-    return threat_model.key_label_tuples
+    return threat_model.key_label_map

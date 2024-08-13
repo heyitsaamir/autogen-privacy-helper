@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal, Dict, List
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
 import re
@@ -24,7 +24,9 @@ ABSTRACTS_XMLNS = "{http://schemas.datacontract.org/2004/07/ThreatModeling.Model
 ARRAY_XMLNS = "{http://schemas.microsoft.com/2003/10/Serialization/Arrays}"
 KNOWLEDGE_BASE_XMLNS = "{http://schemas.datacontract.org/2004/07/ThreatModeling.KnowledgeBase}"
 
-element_to_user_friendly_key = {
+type User_Friendly_Block_Types = Literal["Boundary", "Annotation", "External Interactor", "Node", "Data Store", "Data Flow", "Trust Boundary"]
+type Key_Label_Map = Dict[User_Friendly_Block_Types, List[Dict[Literal["index", "key", "name"], str]]]
+element_to_user_friendly_key: Dict[str, User_Friendly_Block_Types] = {
     "GE.TB.B": "Boundary",
     "GE.A": "Annotation",
     "GE.EI": "External Interactor",
@@ -85,6 +87,7 @@ def set_groups(nodes, boundaries):
             set_appropriate_groups(node, boundary)
 
 class ThreatModel:
+    key_label_map: Key_Label_Map
 
     def add_element(self, el: Element, icons: dict):
         generic_type_id = el.find(build_tag(ABSTRACTS_XMLNS, "GenericTypeId")).text
@@ -170,7 +173,7 @@ class ThreatModel:
         tab_lines = tab.find(build_tag(THREAT_MODELING_XMLNS, "Lines"))
 
         borders = tab_borders.findall(build_tag(ARRAY_XMLNS, "KeyValueOfguidanyType"))
-        key_label_tuples = []
+        key_label_map: Key_Label_Map = {}
         element_to_key_index = {
             "GE.TB.B": 0,
             "GE.A": 0,
@@ -186,7 +189,7 @@ class ThreatModel:
             if not value:
                 continue
             generic_type_id = value.find(build_tag(ABSTRACTS_XMLNS, "GenericTypeId")).text
-            self.generate_custom_key(build_for_ai_context, key_label_tuples, element_to_key_index, value, generic_type_id)
+            self.generate_custom_key(build_for_ai_context, key_label_map, element_to_key_index, value, generic_type_id)
             self.add_element(value, icons)
         
         if tab_lines is not None:
@@ -195,13 +198,18 @@ class ThreatModel:
                 value = line.find(build_tag(ARRAY_XMLNS, "Value"))
                 if not value:
                     continue
-                self.generate_custom_key(build_for_ai_context, key_label_tuples, element_to_key_index, value, generic_type_id)
+                generic_type_id = value.find(build_tag(ABSTRACTS_XMLNS, "GenericTypeId")).text
+                self.generate_custom_key(build_for_ai_context, key_label_map, element_to_key_index, value, generic_type_id)
                 self.add_element(value, icons)
-                
-        self.key_label_tuples = key_label_tuples
+        
+        # sort all the key_label_map
+        for key in key_label_map:
+            key_label_map[key] = sorted(key_label_map[key], key=lambda x: x['index'])
+        
+        self.key_label_map = key_label_map
         set_groups(self.nodes, self.boundaries)
 
-    def generate_custom_key(self, build_for_ai_context, key_label_tuples, element_to_key_index, value, generic_type_id):
+    def generate_custom_key(self, build_for_ai_context, key_label_map, element_to_key_index, value, generic_type_id):
         if build_for_ai_context:
             if isinstance(generic_type_id, str):
                 user_friendly_key = element_to_user_friendly_key.get(generic_type_id, "Element")
@@ -211,7 +219,12 @@ class ThreatModel:
                 raise ValueError(f"Unknown generic_type_id: {generic_type_id}")
             key = f'{user_friendly_key} {key_index + 1}'
             name = get_element_name(value)
-            key_label_tuples.append((key, name))
+            key_label_map[user_friendly_key] = [] if not key_label_map.get(user_friendly_key) else key_label_map[user_friendly_key]
+            key_label_map[user_friendly_key].append({
+                "index": key_index + 1,
+                "key": key,
+                "name": name,
+            })
             value.set('custom_key', key)
 
     def convert_to_svg(self, d):
