@@ -33,7 +33,9 @@ class ThreatModelDataExtractor(ThreatModelImageVisualizer):
                             svg_str = self.state.temp.input_files[0].content.decode("utf-8")
                             threat_model = load_threat_model(svg_content=svg_str)
                             self.label_names = threat_model.get_label_names()
-                            self.no_boundary_nodes = threat_model.get_no_threat_boundary_node_names()
+                            self.node_data = threat_model.get_node_data()
+                            self.boundary_names = threat_model.get_boundary_names()
+                            self.node_label_pair_data = threat_model.get_node_label_pair_data()
 
 class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelDataExtractor):
     def __init__(self, context: TurnContext, say_when_evaluating: bool, max_width: int, **kwargs):
@@ -60,11 +62,13 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
                     # So we need to do this "fire and forget" hack to send the image.
                     ensure_future(self._say_when_evaluating(jpeg))
                 self.resize(self.max_width)
-        if self.label_names is not None or self.no_boundary_nodes is not None:
+        if self.label_names is not None or self.node_data is not None:
             messages = messages.copy()
             content = f"""The file details for the file you need to validate are: 
-            1. The nodes with no boundaries are {self.no_boundary_nodes}.
-            2. The list of label names is {self.label_names}."""
+            1. The data for the nodes is: {self.node_data}.
+            2. The list of label names is {self.label_names}.
+            3. The list of nodes with labels between them is {self.node_label_pair_data}.
+            4. The list of boundary names is {self.boundary_names}."""
             messages.append({"content": content, "role": "user"})
         else:
             messages = messages.copy()
@@ -91,10 +95,35 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
                 )
 
 def setup_xml_threat_model_reviewer(llm_config, context: TurnContext, state: AppTurnState, threat_model_spec: str = """
-1. All nodes should be inside a boundary. Are there any nodes not in a boundary?
+1. All nodes should be inside a boundary. Are there any nodes not in a boundary? To determine if a node is within a boundary in the node data for a node, has_boundary should be true.
 2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you
 the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", this is valid, because all numbers between 1 and 3 are there, but if it were "1. FlowA" and second 
 "4. FlowB" and third, "2. FlowC" then this would be invalid, because 3 is missing.
+3. All nodes and labels should be tagged with [NEW] or [EXISTING] to denote which part of the DFD is to be reviewed.
+4. Validate a request and response for each node and that there is a label. If in the list of nodes with labels between them for two nodes either hasNode2ToNode1Curve or hasNode1ToNode2Curve are not true, say that there aren't curves in both directions between these nodes. Do not use strings like hasNode2ToNode1Curve in the response.
+5. Each storage node can have a tag like 30D that represents its retention. If no storage nodes have this tag issue a warning but this should not be a validation failure. If there is a tag that appears like it's a duration it should be in compact duration format. Only for [NEW] nodes
+6. Each label should have a string representing the type of data it passes. Therefore it should include one of the following: AC, CC, EUII, OII, SM PND, EUPI, SD, FB, AD PPD MSD. If none of these are available please let the user know and give them the table of available types with their descriptions:
+| Label | Data type |
+|-----|-----------|
+| AC | Access Control Data |
+| CC | Customer Content|
+| EUII | End User Identifiable Information |
+| OII | Organization Identifiable Information |
+| SM | System Metadata |
+| PND | Public Non-Personal Data |
+| EUPI | End User Pseudonymous Identifiers |
+| SD | Support Data |
+| FB | Feedback Data |
+| AD | Account Data |
+| PPD | Public Personal Data |
+| MSD | Managed Service Data |
+7. There should not be any JSON in any of the labels, only the tag.
+
+Please group the responses in three groups:
+1. **Needs to be addressed** for validation failures
+2. **Green** for items that are done correctly
+3. **Warnings** for items that are not incorrect but are warnings
+
     """):
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",

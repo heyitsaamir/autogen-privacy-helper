@@ -12,3 +12,5 @@ class Curve:
         self.controlX = 2*self.handleX - self.sourceX/2 - self.targetX/2  # Initialize with default value
         self.controlY = 2*self.handleY - self.sourceY/2 - self.targetY/2  # Initialize with default value
         self.icons = icons
+        self.sourceNode = None
+        self.targetNode = None
