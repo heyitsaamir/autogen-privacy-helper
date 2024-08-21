@@ -94,7 +94,7 @@ def set_curve_nodes(nodes, curves):
         for node in nodes:
             if is_point_in(curve.sourceX, curve.sourceY, node):
                 curve.sourceNode = node
-            elif is_point_in(curve.targetX, curve.targetY, node):
+            if is_point_in(curve.targetX, curve.targetY, node):
                 curve.targetNode = node
             if curve.sourceNode is not None and curve.targetNode is not None:
                 break
