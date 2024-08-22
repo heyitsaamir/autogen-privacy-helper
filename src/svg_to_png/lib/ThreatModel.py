@@ -60,6 +60,9 @@ def get_element_name(shape):
     name = any_type_properties[1][2].text
     return name if name else ""
 
+def is_point_in(x, y, shape):
+    return shape.left <= x and shape.top <= y and shape.left + shape.width >= x and shape.top + shape.height >= y
+
 def is_in(candidate, boundary):
     return boundary.left <= candidate.left and boundary.top <= candidate.top and boundary.left + boundary.width >= candidate.left + candidate.width and boundary.top + boundary.height >= candidate.top + candidate.height
 
@@ -85,6 +88,16 @@ def set_groups(nodes, boundaries):
     for node in nodes:
         for boundary in boundaries:
             set_appropriate_groups(node, boundary)
+
+def set_curve_nodes(nodes, curves):
+    for curve in curves:
+        for node in nodes:
+            if is_point_in(curve.sourceX, curve.sourceY, node):
+                curve.sourceNode = node
+            if is_point_in(curve.targetX, curve.targetY, node):
+                curve.targetNode = node
+            if curve.sourceNode is not None and curve.targetNode is not None:
+                break
 
 class ThreatModel:
     key_label_map: Key_Label_Map
@@ -208,6 +221,7 @@ class ThreatModel:
         
         self.key_label_map = key_label_map
         set_groups(self.nodes, self.boundaries)
+        set_curve_nodes(self.nodes, self.curves)
 
     def generate_custom_key(self, build_for_ai_context, key_label_map, element_to_key_index, value, generic_type_id):
         if build_for_ai_context:
@@ -252,5 +266,39 @@ class ThreatModel:
         # if they are numbered, label names sorted can be easier for the model to handle sequences
         return sorted(label_names, key=sort_key)
     
-    def get_no_threat_boundary_node_names(self):
-        return [node.name for node in self.nodes if node.group is None]
+    def get_node_data(self):
+        return [{"name": node.name, "has_boundary": node.group is not None} for node in self.nodes]
+    
+    def get_boundary_names(self):
+        return [boundary.name for boundary in self.boundaries + self.trust_line_boundaries]
+    
+    def get_node_label_pair_data(self):
+        result = {}
+
+        for curve in self.curves:
+            if curve.sourceNode is None or curve.targetNode is None:
+                continue
+
+            node1_name = curve.sourceNode.name
+            node2_name = curve.targetNode.name
+            
+            # Create a sorted tuple key to ensure unique pairs regardless of order
+            pair_key = tuple(sorted([node1_name, node2_name]))
+            
+            # Initialize the dictionary entry if not already present
+            if pair_key not in result:
+                result[pair_key] = {
+                    "node1": pair_key[0],
+                    "node2": pair_key[1],
+                    "hasNode1ToNode2Curve": False,
+                    "hasNode2ToNode1Curve": False
+                }
+            
+            # Update the boolean values based on the direction of the curve
+            if node1_name == pair_key[0]:
+                result[pair_key]["hasNode1ToNode2Curve"] = True
+            else:
+                result[pair_key]["hasNode2ToNode1Curve"] = True
+
+        # Convert the dictionary values to a list
+        return list(result.values())
