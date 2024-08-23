@@ -1,6 +1,6 @@
 ## Autogen Privacy Helper
 
-[![Build and deploy to Azure Web App](https://github.com/heyitsaamir/autogen-privacy-helper/actions/workflows/main_bot6ea18a.yml/badge.svg)](https://github.com/heyitsaamir/autogen-privacy-helper/actions/workflows/main_bot6ea18a.yml)
+[![Build and Deploy to all tenants](https://github.com/heyitsaamir/autogen-privacy-helper/actions/workflows/build_deploy_workflow.yml/badge.svg)](https://github.com/heyitsaamir/autogen-privacy-helper/actions/workflows/build_deploy_workflow.yml)
 
 This is a simple project that demonstrates the use of [autogen](https://github.com/microsoft/autogen) in the context of a Microsoft Teams AI bot.
 This bot models privacy review helper. The group is built for two purposes currently:
