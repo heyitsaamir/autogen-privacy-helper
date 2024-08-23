@@ -19,6 +19,8 @@ on:
         required: true
       CREDS:
         required: true
+      WEBAPP_NAME:
+        required: true
 
 jobs:
   build:
