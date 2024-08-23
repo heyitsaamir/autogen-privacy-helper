@@ -56,7 +56,7 @@ class AutoGenPlanner(Planner):
             llm_config=self.llm_config
         )
         if is_existing_group_chat and state.conversation.message_history is not None:
-            await manager.a_resume(messages=state.conversation.message_history)
+            await manager.a_resume(messages=state.conversation.message_history, remove_termination_string=None) # type: ignore
 
         incoming_message = self.messageBuilder(context, state) if self.messageBuilder is not None else context.activity.text
         chat_result = await user_proxy.a_initiate_chat(recipient=manager, message=incoming_message, clear_history=False)

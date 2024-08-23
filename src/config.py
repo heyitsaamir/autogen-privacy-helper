@@ -28,8 +28,10 @@ class Config:
 
     def build_llm_config(self):
         if self.OPENAI_KEY:
+            print("Using OpenAI API")
             autogen_llm_config = {"model": "gpt-4o-mini", "api_key": self.OPENAI_KEY}
         elif self.AZURE_OPENAI_KEY and self.AZURE_OPENAI_ENDPOINT:
+            print("Using Azure OpenAI API")
             autogen_llm_config = {
                 "model": "my-gpt-4-deployment",
                 "api_version": "2024-02-01",
@@ -38,6 +40,7 @@ class Config:
                 "base_url": self.AZURE_OPENAI_ENDPOINT,
             }
         elif self.AZURE_MANAGED_IDENTITY_CLIENT_ID and self.AZURE_LLM_MODEL and self.AZURE_LLM_BASE_URL:
+            print("Using Azure OpenAI API with managed identity")
             import azure.identity
             autogen_llm_config = {
                 "model": self.AZURE_LLM_MODEL,
