@@ -17,7 +17,7 @@ on:
         required: true
       REGISTRY_PASSWORD:
         required: true
-      AZURE_CREDENTIALS:
+      CREDS:
         required: true
 
 jobs:
@@ -57,7 +57,7 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v1
         with:
-            creds: ${{ secrets.AZURE_CREDENTIALS }}
+            creds: ${{ secrets.CREDS }}
 
       - name: 'Deploy'
         uses: azure/webapps-deploy@v2
