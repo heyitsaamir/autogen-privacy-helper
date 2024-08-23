@@ -6,6 +6,11 @@ name: Release to Prod
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to release'
+        type: environment
+        required: true
 
 jobs:     
   release-to-prod:
@@ -13,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: 'Production'
-      url: 'https://${{ vars.WEBAPP_NAME }}.azurewebsites.net/'
+      url: ${{ vars.WEBAPP_URL }}
 
     steps:
     - name: Log into Azure CLI

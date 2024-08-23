@@ -1,0 +1,24 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+
+name: Test Tenant Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+        - 'src/**'
+  workflow_dispatch:
+
+jobs:
+  ReuseableMatrixJobForDeployment:
+    strategy:
+      fail-fast: true
+      matrix:
+        target: [Production, Microsoft]
+    uses: ./.github/workflows/build_deploy.yml
+    with:
+      target-env: ${ { matrix.target } }
+    secrets: inherit
