@@ -14,7 +14,7 @@ class Config:
 
     PORT = 3978
     APP_ID = os.environ["BOT_ID"]
-    APP_TYPE = os.environ.get("APP_TYPE", None)
+    APP_TYPE = os.environ.get("APP_TYPE", "MultiTenant")
     APP_TENANTID = os.environ.get("TENANT_ID", None)
     APP_PASSWORD = os.environ.get("BOT_PASSWORD", os.environ.get("SECRET_BOT_PASSWORD", "BAD_PASSWORD"))
     OPENAI_KEY = os.environ.get("OPENAI_KEY", "")
