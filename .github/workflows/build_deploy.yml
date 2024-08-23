@@ -63,6 +63,6 @@ jobs:
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
         with:
-          app-name: ${{ vars.WEBAPP_NAME }}
+          app-name: ${{ secrets.WEBAPP_NAME }}
           slot-name: 'staging'
           images: ${{ secrets.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
