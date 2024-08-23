@@ -55,5 +55,4 @@ jobs:
         id: deploy-to-webapp
         with:
           app-name: ${{ vars.WEBAPP_NAME_MSFT }}
-          slot-name: 'staging'
           images: ${{ secrets.REGISTRY_LOGIN_SERVER_MSFT }}/privacy-helper:${{ github.sha }}
