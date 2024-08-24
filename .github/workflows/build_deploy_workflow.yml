@@ -21,4 +21,9 @@ jobs:
     uses: ./.github/workflows/build_deploy.yml
     with:
       target-env: ${ { matrix.target } }
-    secrets: inherit
+    secrets:
+      REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      CREDS: ${{ secrets.CREDS }}
+      WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}
