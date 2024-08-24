@@ -1,0 +1,23 @@
+name: 'Swap slots'
+description: 'Swap slots from for staging and production'
+inputs:
+  CREDS:
+    description: 'Azure credentials'
+    required: true
+  WEBAPP_NAME:
+    description: 'Web App name'
+    required: true
+  RESOURCE_GROUP:
+    description: 'Resource group'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Log into Azure CLI
+      uses: azure/login@v1.1
+      with:
+        creds: ${{ inputs.CREDS }}
+
+    - name: Swap slots
+      shell: bash
+      run: az webapp deployment slot swap -s staging -n ${{ inputs.WEBAPP_NAME }} -g ${{ inputs.RESOURCE_GROUP }}

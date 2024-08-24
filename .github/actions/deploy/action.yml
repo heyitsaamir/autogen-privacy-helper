@@ -1,9 +1,6 @@
 name: 'Deploy to Azure Web App'
 description: 'Deploy Docker image to Azure Web App'
 inputs:
-  target-env:
-    description: 'Target environment'
-    required: true
   CREDS:
     description: 'Azure credentials'
     required: true
