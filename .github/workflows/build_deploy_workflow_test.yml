@@ -1,0 +1,33 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+
+name: Build and Deploy Test Tenant
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+        - 'src/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy-to-test-tenant:
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build docker image
+        uses: ./.github/actions/build
+        with:
+          REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Deploy to staging
+        uses: ./.github/actions/deploy
+        with:
+          CREDS: ${{ secrets.CREDS }}
+          WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}
+          REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
