@@ -2,22 +2,22 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Release to Test Tenant
+name: Release to Test tenant
 
 on:
   workflow_dispatch:
 
 jobs:     
-  release-to-prod:
-    name: Release to prod
+  release-to-msft:
+    name: Release to Test tenant
     runs-on: ubuntu-latest
     environment:
       name: Production
 
     steps:
       - name: Deploy to staging
-      uses: ./.github/swap_slots/deploy
-      with:
-        CREDS: ${{ secrets.CREDS }}
-        WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}
-        RESOURCE_GROUP: ${{ secrets.RESOURCE_GROUP }}
+        uses: ./.github/swap_slots/deploy
+        with:
+          CREDS: ${{ secrets.CREDS }}
+          WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}
+          RESOURCE_GROUP: ${{ secrets.RESOURCE_GROUP }}
