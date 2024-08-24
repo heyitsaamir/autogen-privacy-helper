@@ -15,6 +15,7 @@ jobs:
       name: Microsoft
 
     steps:
+      - uses: actions/checkout@v4
       - name: Deploy to staging
         uses: ./.github/swap_slots/deploy
         with:
