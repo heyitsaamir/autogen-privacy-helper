@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:     
-  release-to-prod:
-    name: Release to prod
+  release-to-msft:
+    name: Release to Microsoft
     runs-on: ubuntu-latest
     environment:
       name: Microsoft
