@@ -24,10 +24,13 @@ jobs:
       uses: azure/login@v1.1
       with:
         creds: ${{ secrets.CREDS }}
+    - name: Declare environment
+      run: |
+        echo "Environment: ${{ inputs.environment }}"
     - name: Set web app url
       run: |
-        echo "Setting web app url to ${{ vars.WEBAPP_URL }}"
-        echo "WEBAPP_URL=${{ vars.WEBAPP_URL }}" >> $GITHUB_ENV
+        echo "Setting web app url to ${{ secrets.WEBAPP_URL }}"
+        echo "WEBAPP_URL=${{ secrets.WEBAPP_URL }}" >> $GITHUB_ENV
 
     - name: Swap slots
       run: az webapp deployment slot swap -s staging -n ${{ secrets.WEBAPP_NAME }} -g ${{ secrets.RESOURCE_GROUP }}
