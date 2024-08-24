@@ -20,5 +20,5 @@ jobs:
         target: [Production, Microsoft]
     uses: ./.github/workflows/build_deploy.yml
     with:
-      target-env: ${ { matrix.target } }
+      target-env: ${{ matrix.target }}
     secrets: inherit
