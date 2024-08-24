@@ -13,11 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: Microsoft
-
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to staging
-        uses: ./.github/swap_slots/deploy
+        uses: ./.github/actions/swap_slots
         with:
           CREDS: ${{ secrets.CREDS }}
           WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}
