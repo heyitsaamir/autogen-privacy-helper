@@ -95,35 +95,15 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
                 )
 
 def setup_xml_threat_model_reviewer(llm_config, context: TurnContext, state: AppTurnState, threat_model_spec: str = """
-1. All nodes should be inside a boundary. Are there any nodes not in a boundary? To determine if a node is within a boundary in the node data for a node, has_boundary should be true.
+1. All nodes should be inside a boundary. Are there any nodes not in a boundary? To determine if a node is within a boundary in the node data for a node, has_boundary should be true. Do not tell the user of the has_boundary flag, however, just whether a node is not in a boundary.
 2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you
 the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", this is valid, because all numbers between 1 and 3 are there, but if it were "1. FlowA" and second 
 "4. FlowB" and third, "2. FlowC" then this would be invalid, because 3 is missing.
 3. All nodes and labels should be tagged with [NEW] or [EXISTING] to denote which part of the DFD is to be reviewed.
 4. Validate a request and response for each node and that there is a label. If in the list of nodes with labels between them for two nodes either hasNode2ToNode1Curve or hasNode1ToNode2Curve are not true, say that there aren't curves in both directions between these nodes. Do not use strings like hasNode2ToNode1Curve in the response.
 5. Each storage node can have a tag like 30D that represents its retention. If no storage nodes have this tag issue a warning but this should not be a validation failure. If there is a tag that appears like it's a duration it should be in compact duration format. Only for [NEW] nodes
-6. Each label should have a string representing the type of data it passes. Therefore it should include one of the following: AC, CC, EUII, OII, SM PND, EUPI, SD, FB, AD PPD MSD. If none of these are available please let the user know and give them the table of available types with their descriptions:
-| Label | Data type |
-|-----|-----------|
-| AC | Access Control Data |
-| CC | Customer Content|
-| EUII | End User Identifiable Information |
-| OII | Organization Identifiable Information |
-| SM | System Metadata |
-| PND | Public Non-Personal Data |
-| EUPI | End User Pseudonymous Identifiers |
-| SD | Support Data |
-| FB | Feedback Data |
-| AD | Account Data |
-| PPD | Public Personal Data |
-| MSD | Managed Service Data |
-7. There should not be any JSON in any of the labels, only the tag.
-
-Please group the responses in three groups:
-1. **Needs to be addressed** for validation failures
-2. **Green** for items that are done correctly
-3. **Warnings** for items that are not incorrect but are warnings
-
+6. Each label should have a string representing the type of data it passes. Therefore it should include one of the following: AC, CC, EUII, OII, SM PND, EUPI, SD, FB, AD PPD MSD.
+7. There should not be any JSON in any of the labels. Only tags should be in the labels.
     """):
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",
@@ -133,7 +113,13 @@ Please group the responses in three groups:
             These are the rules you need to do evaluation based on: {threat_model_spec}. Your role is to report back what are the 
             issues with the data given the rules. When responding, do not respond referring to the rules by number, but instead 
             describe the rule to the user. Please respond in a clear bullet pointed answer on what the issues are with the data.
-            Certainly, never respond with code that the user should try to execute.""",
+            Certainly, never respond with code that the user should try to execute.
+            Please group the responses in three groups:
+            1. **Needs to be addressed** for validation failures
+            2. **Green** for items that are done correctly
+            3. **Warnings** for items that are not incorrect but are warnings
+                                                    
+            For any node that has newline characters like \n or \r please filter out these characters in your response. Also, filter out any JSON.""",
         llm_config={"config_list": [llm_config],
                         "timeout": 60, "temperature": 0},
     )
