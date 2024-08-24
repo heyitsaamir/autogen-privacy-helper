@@ -13,12 +13,41 @@ on:
   workflow_dispatch:
 
 jobs:
-  ReuseableMatrixJobForDeployment:
-    strategy:
-      fail-fast: true
-      matrix:
-        target: [Production, Microsoft]
-    uses: ./.github/workflows/build_deploy.yml
-    with:
-      target-env: ${{ matrix.target }}
-    secrets: inherit
+  build-and-deploy-to-test-tenant:
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+    steps:
+      - name: Build docker image
+        uses: ./.github/actions/build
+        with:
+          target-env: Production
+          REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Deploy to staging
+        uses: ./.github/actions/deploy
+        with:
+          target-env: Production
+          CREDS: ${{ secrets.CREDS }}
+          WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}
+          REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+  build-and-deploy-to-msft-tenant:
+    runs-on: ubuntu-latest
+    environment:
+      name: Microsoft
+    steps:
+      - name: Build docker image
+        uses: ./.github/actions/build
+        with:
+          target-env: Production
+          REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Deploy to staging
+        uses: ./.github/actions/deploy
+        with:
+          target-env: Production
+          CREDS: ${{ secrets.CREDS }}
+          WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}
+          REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}

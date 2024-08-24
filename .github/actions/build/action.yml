@@ -1,0 +1,32 @@
+name: 'Build Docker Image'
+description: 'Build and push Docker image to registry'
+inputs:
+  REGISTRY_LOGIN_SERVER:
+    description: 'Registry login server'
+    required: true
+  REGISTRY_USERNAME:
+    description: 'Registry username'
+    required: true
+  REGISTRY_PASSWORD:
+    description: 'Registry password'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Lowercase the repo name
+      shell: bash
+      run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+    - uses: azure/docker-login@v1
+      with:
+        login-server: ${{ inputs.REGISTRY_LOGIN_SERVER }}
+        username: ${{ inputs.REGISTRY_USERNAME }}
+        password: ${{ inputs.REGISTRY_PASSWORD }}
+
+    - name: build-and-push
+      shell: bash
+      run: |
+        docker build . -t ${{ inputs.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
+        docker push ${{ inputs.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}
