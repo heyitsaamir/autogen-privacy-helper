@@ -14,13 +14,13 @@ teams-ai = "^1.2.1"
 python-dotenv = "^1.0.1"
 aiohttp = "3.9.5"
 pyautogen = {version="0.2.34", extras=["llm", "retrievechat"]}
-botbuilder-azure = "^4.15.1"
 azure-identity = "^1.17.1"
 pillow = "10.3.0"
 azure-search-documents = "^11.5.0"
 azure-core = "^1.30.2"
 drawsvg = {extras = ["all"], version = "^2.4.0"}
 svgpathtools = "^1.6.1"
+azure-cosmos = "^4.7.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
