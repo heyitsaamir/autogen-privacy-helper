@@ -13,6 +13,7 @@ from botbuilder.core import TurnContext, MemoryStorage
 from teams import Application, ApplicationOptions, TeamsAdapter
 from teams.ai import AIOptions
 from teams.ai.actions import ActionTypes, ActionTurnContext
+from teams.feedback_loop_data import FeedbackLoopData
 from teams.teams_attachment_downloader.teams_attachment_downloader import TeamsAttachmentDownloader
 from teams.teams_attachment_downloader.teams_attachment_downloader_options import TeamsAttachmentDownloaderOptions
 from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
@@ -20,6 +21,7 @@ from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
 from privacy_review_assistant_group import PrivacyReviewAssistantGroup
 
 from config import Config
+from cosmos_memory_storage import CosmosDbPartitionedStorage
 from state import AppTurnState
 
 config = Config()
@@ -30,7 +32,10 @@ if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
         "Unable to build LLM config - please check that OPENAI_KEY or AZURE_OPENAI_KEY is set."
     )
 
-storage = MemoryStorage()
+cosmos_config = config.build_cosmos_db_config()
+storage = MemoryStorage() if cosmos_config is None else CosmosDbPartitionedStorage(
+    cosmos_config
+)
 
 threat_model_reviewer_group = PrivacyReviewAssistantGroup(llm_config=llm_config)
 
@@ -64,6 +69,9 @@ async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachme
                 type=ActivityTypes.message,
                 text=content,
                 attachments=context.data.response.attachments,
+                channelData={
+                   "feedbackLoopEnabled": True
+                },
                 entities=[
                     {
                         "type": "https://schema.org/Message",
@@ -99,6 +107,10 @@ async def set_to_xml(context: TurnContext, state: AppTurnState):
     await state.save(context)
     await context.send_activity("Ready to use XML evaluator")
     return True
+
+@app.feedback_loop()
+async def feedback_loop(context: TurnContext, state: AppTurnState, feedback_data: FeedbackLoopData):
+    await state.save(context)
 
 
 @app.turn_state_factory

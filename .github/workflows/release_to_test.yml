@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy to staging
+      - name: Deploy to prod
         uses: ./.github/actions/swap_slots
         with:
           CREDS: ${{ secrets.CREDS }}
