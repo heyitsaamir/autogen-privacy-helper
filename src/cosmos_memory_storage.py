@@ -254,10 +254,15 @@ class CosmosDbPartitionedStorage(Storage):
     async def initialize(self):
         if not self.container:
             if not self.client:
-                self.client = cosmos_client.CosmosClient(
-                    self.config.cosmos_db_endpoint,
-                    self.config.credential
-                )
+                if isinstance(self.config.credential, str):
+                    self.client = cosmos_client.CosmosClient.from_connection_string(
+                        self.config.credential,
+                    )
+                else:
+                    self.client = cosmos_client.CosmosClient(
+                        self.config.cosmos_db_endpoint,
+                        self.config.credential
+                    )
 
             if not self.database:
                 self.database = self.client.create_database_if_not_exists(

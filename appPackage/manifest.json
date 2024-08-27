@@ -39,7 +39,17 @@
             "botId": "${{BOT_ID}}",
             "scopes": ["personal", "team", "groupChat"],
             "isNotificationOnly": false,
-            "supportsFiles": true
+            "supportsFiles": true,
+            "commandLists": [
+                {
+                    "commands": [
+                        {
+                            "title": "/clear",
+                            "description": "Clear the current context"
+                        }
+                    ]
+                }
+            ]
         }
     ],
     "validDomains": [

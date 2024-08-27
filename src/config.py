@@ -30,6 +30,8 @@ class Config:
     COSMOS_DB_DATABASE_ID=os.environ.get("COSMOS_DB_DATABASE_ID")
     COSMOS_DB_CONTAINER_ID=os.environ.get("COSMOS_DB_CONTAINER_ID")
     AZURE_MANAGED_IDENTITY_CLIENT_ID=os.environ.get("AZURE_MANAGED_IDENTITY_CLIENT_ID")
+    COSMOS_DB_CONNECTION_STRING=os.environ.get("COSMOS_DB_CONNECTION_STRING")
+    ENABLE_CHAT_HISTORY_SENDING=os.environ.get("ENABLE_CHAT_HISTORY_SENDING", "false").lower() == "true"
 
     def build_llm_config(self):
         if self.OPENAI_KEY:
@@ -65,10 +67,20 @@ class Config:
         return autogen_llm_config
     
     def build_cosmos_db_config(self):
-        if self.COSMOS_DB_URI is None or self.COSMOS_DB_DATABASE_ID is None or self.COSMOS_DB_CONTAINER_ID is None or self.AZURE_MANAGED_IDENTITY_CLIENT_ID is None:
+        if self.COSMOS_DB_URI is None or self.COSMOS_DB_DATABASE_ID is None or self.COSMOS_DB_CONTAINER_ID is None or (self.AZURE_MANAGED_IDENTITY_CLIENT_ID is None and self.COSMOS_DB_CONNECTION_STRING is None):
             return None
+        
+        if self.COSMOS_DB_CONNECTION_STRING is not None:
+            print("Using Cosmos DB with connection string")
+            return CosmosDbPartitionedConfig(
+                self.COSMOS_DB_URI,
+                credential=self.COSMOS_DB_CONNECTION_STRING,
+                database_id=self.COSMOS_DB_DATABASE_ID,
+                container_id=self.COSMOS_DB_CONTAINER_ID,
+            )
+        
         import azure.identity
-        print("Using Cosmos DB")
+        print("Using Cosmos DB with managed identity")
         return CosmosDbPartitionedConfig(
             self.COSMOS_DB_URI,
             credential=azure.identity.DefaultAzureCredential(
