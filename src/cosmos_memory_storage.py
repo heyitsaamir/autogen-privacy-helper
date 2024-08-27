@@ -209,14 +209,14 @@ class CosmosDbPartitionedStorage(Storage):
             access_condition = {
                 "accessCondition": {"type": "IfMatch", "condition": e_tag}
             }
-            options = (
+            request_options = (
                 access_condition if e_tag != "*" and e_tag and e_tag != "" else None
             )
             try:
                 assert self.container
                 self.container.upsert_item(
                     body=doc,
-                    options=options,
+                    options=request_options,
                 )
             except cosmos_errors.HttpResponseError as err:
                 raise err
