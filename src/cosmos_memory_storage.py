@@ -210,7 +210,7 @@ class CosmosDbPartitionedStorage(Storage):
                 "accessCondition": {"type": "IfMatch", "condition": e_tag}
             }
             request_options = (
-                access_condition if e_tag != "*" and e_tag and e_tag != "" else None
+                access_condition if e_tag != "*" and e_tag and e_tag != "" else {}
             )
             try:
                 assert self.container
