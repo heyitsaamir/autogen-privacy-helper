@@ -155,6 +155,7 @@ class CosmosDbPartitionedStorage(Storage):
                     key, self.config.key_suffix, self.config.compatibility_mode
                 )
 
+                print(f"Reading item {self.__item_link(escaped_key)}")
                 read_item_response = self.container.read_item(
                     self.__item_link(escaped_key), self.__get_partition_key(escaped_key)
                 )
@@ -277,7 +278,7 @@ class CosmosDbPartitionedStorage(Storage):
                 )
 
     def __get_partition_key(self, key: str) -> str:
-        return '/id'
+        return key
 
     @staticmethod
     def __create_si(result) -> object:

@@ -68,6 +68,7 @@ class Config:
         if self.COSMOS_DB_URI is None or self.COSMOS_DB_DATABASE_ID is None or self.COSMOS_DB_CONTAINER_ID is None or self.AZURE_MANAGED_IDENTITY_CLIENT_ID is None:
             return None
         import azure.identity
+        print("Using Cosmos DB")
         return CosmosDbPartitionedConfig(
             self.COSMOS_DB_URI,
             credential=azure.identity.DefaultAzureCredential(
