@@ -4,12 +4,12 @@ Licensed under the MIT License.
 
 Description: initialize the app and listen for `message` activitys
 """
-import os
+from typing import Dict
 import sys
 import traceback
 from botbuilder.schema import Activity, ActivityTypes
 
-from botbuilder.core import TurnContext, MemoryStorage
+from botbuilder.core import TurnContext, MemoryStorage, InvokeResponse
 from teams import Application, ApplicationOptions, TeamsAdapter
 from teams.ai import AIOptions
 from teams.ai.actions import ActionTypes, ActionTurnContext
@@ -56,7 +56,7 @@ app = Application[AppTurnState](
 
 
 @app.ai.action(ActionTypes.SAY_COMMAND)
-async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachments], _state: AppTurnState):
+async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachments], state: AppTurnState):
     content = (
         context.data.response.content
         if context.data.response and context.data.response.content
@@ -64,12 +64,12 @@ async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachme
     )
 
     if content:
-        await context.send_activity(
+        response = await context.send_activity(
             Activity(
                 type=ActivityTypes.message,
                 text=content,
                 attachments=context.data.response.attachments,
-                channelData={
+                channel_data={
                    "feedbackLoopEnabled": True
                 },
                 entities=[
@@ -83,6 +83,7 @@ async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachme
                 ],
             )
         )
+        state.conversation.activity_id = response.id
 
     return ""
 
@@ -108,9 +109,38 @@ async def set_to_xml(context: TurnContext, state: AppTurnState):
     await context.send_activity("Ready to use XML evaluator")
     return True
 
-@app.feedback_loop()
-async def feedback_loop(context: TurnContext, state: AppTurnState, feedback_data: FeedbackLoopData):
-    await state.save(context)
+@app.activity("invoke")
+async def feedback_loop(context: TurnContext, state: AppTurnState):
+    if context.activity.name != "message/submitAction" or context.activity.value.get("actionName", "") != "feedback" or not context.activity.value:
+        return False
+    
+    activity_value: dict = context.activity.value
+    feedback = FeedbackLoopData.from_dict({
+        **activity_value,
+        "reply_to_id": context.activity.reply_to_id,
+    })
+    
+    if not context.activity.channel_id:
+        raise ValueError("missing activity.channel_id")
+    if not context.activity.conversation:
+        raise ValueError("missing activity.conversation")
+    if not context.activity.recipient:
+        raise ValueError("missing activity.recipient")
+    feedback_key = f"feedback_{feedback.reply_to_id}"
+    channel_id = context.activity.channel_id
+    conversation_id = context.activity.conversation.id
+    bot_id = context.activity.recipient.id
+    storage_item = feedback.to_dict()
+    storage_item["activity_key"] = f"{channel_id}/{bot_id}/conversations/{conversation_id}"
+    feedback_details: Dict[str, Dict] = {
+        feedback_key: storage_item
+    }
+    
+    await storage.write(feedback_details) # type: ignore
+    await context.send_activity(
+        Activity(type=ActivityTypes.invoke_response, value=InvokeResponse(status=200, body={}))
+    )
+    return True
 
 
 @app.turn_state_factory

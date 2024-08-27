@@ -10,11 +10,13 @@ from teams.state import ConversationState, TempState, TurnState, UserState
 from datetime import datetime
 
 class AppConversationState(ConversationState):
+    message_history_old: Optional[List[Dict]] = None
     message_history: Optional[List[Dict]] = None
     is_waiting_for_user_input: bool = False
     started_waiting_for_user_input_at: Optional[Union[datetime, str]] = None
     spec_url: Optional[str] = None
     use_xml_evaluator: bool = True
+    activity_id: Optional[str] = None
 
     @classmethod
     async def load(
