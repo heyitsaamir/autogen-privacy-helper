@@ -10,6 +10,7 @@ from teams.ai.planners import Planner, Plan, PredictedSayCommand
 from autogen import Agent, GroupChat, GroupChatManager, ChatResult
 from state import AppTurnState
 from teams_user_proxy import TeamsUserProxy
+from config import Config
 
 @dataclass_json
 @dataclass
@@ -81,7 +82,7 @@ class AutoGenPlanner(Planner):
             if mime_type is not None and mime_type.group(1) is not None:
                 attachments.append(Attachment(content_type=mime_type.group(1), content_url=message))
                 message = "👇"
-        if len(attachments) == 0:
+        if len(attachments) == 0 and Config.ENABLE_CHAT_HISTORY_SENDING:
             attachments.append(create_chat_history_ac(chat_result))
         return Plan(
             commands=[
