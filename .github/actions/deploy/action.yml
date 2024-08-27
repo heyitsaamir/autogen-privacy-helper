@@ -10,6 +10,9 @@ inputs:
   REGISTRY_LOGIN_SERVER:
     description: 'Registry login server'
     required: true
+  SLOT_NAME:
+    description: 'Slot name'
+    required: false
 runs:
   using: 'composite'
   steps:
@@ -27,5 +30,5 @@ runs:
       id: deploy-to-webapp
       with:
         app-name: ${{ inputs.WEBAPP_NAME }}
-        slot-name: 'staging'
+        slot-name: ${{ inputs.SLOT_NAME }}
         images: ${{ inputs.REGISTRY_LOGIN_SERVER }}/privacy-helper:${{ github.sha }}

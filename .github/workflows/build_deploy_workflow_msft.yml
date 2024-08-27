@@ -25,7 +25,7 @@ jobs:
           REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-      - name: Deploy to staging
+      - name: Deploy to prod
         uses: ./.github/actions/deploy
         with:
           CREDS: ${{ secrets.CREDS }}

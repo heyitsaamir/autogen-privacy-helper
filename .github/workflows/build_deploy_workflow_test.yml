@@ -31,3 +31,4 @@ jobs:
           CREDS: ${{ secrets.CREDS }}
           WEBAPP_NAME: ${{ secrets.WEBAPP_NAME }}
           REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          SLOT_NAME: 'staging'
