@@ -155,7 +155,6 @@ class CosmosDbPartitionedStorage(Storage):
                     key, self.config.key_suffix, self.config.compatibility_mode
                 )
 
-                print(f"Reading item {self.__item_link(escaped_key)}")
                 read_item_response = self.container.read_item(
                     escaped_key, self.__get_partition_key(escaped_key)
                 )
@@ -239,7 +238,7 @@ class CosmosDbPartitionedStorage(Storage):
             try:
                 assert self.container
                 self.container.delete_item(
-                    self.__item_link(escaped_key),
+                    escaped_key,
                     self.__get_partition_key(escaped_key),
                 )
             except cosmos_errors.HttpResponseError as err:
@@ -314,28 +313,3 @@ class CosmosDbPartitionedStorage(Storage):
 
         # loop through attributes and write and return a dict
         return json_dict
-
-    def __item_link(self, identifier) -> str:
-        """Return the item link of a item in the container.
-
-        :param identifier:
-        :return str:
-        """
-        return self.__container_link + "/docs/" + identifier
-
-    @property
-    def __container_link(self) -> str:
-        """Return the container link in the database.
-
-        :param:
-        :return str:
-        """
-        return self.__database_link + "/colls/" + self.config.container_id
-
-    @property
-    def __database_link(self) -> str:
-        """Return the database link.
-
-        :return str:
-        """
-        return "dbs/" + self.config.database_id
