@@ -115,10 +115,11 @@ async def feedback_loop(context: TurnContext, state: AppTurnState):
         return False
     
     activity_value: dict = context.activity.value
-    feedback = FeedbackLoopData.from_dict({
-        **activity_value,
-        "reply_to_id": context.activity.reply_to_id,
-    })
+    feedback = FeedbackLoopData(
+        action_name="feedback",
+        action_value=activity_value.get("actionValue", {}),
+        reply_to_id=context.activity.reply_to_id,
+    )
     
     if not context.activity.channel_id:
         raise ValueError("missing activity.channel_id")
