@@ -56,6 +56,15 @@ class AutoGenPlanner(Planner):
             groupchat=groupchat,
             llm_config=self.llm_config
         )
+        
+        if state.conversation.message_history is not None:
+            if state.conversation.message_history_old is None:
+                state.conversation.message_history_old = []
+            state.conversation.message_history_old.append({
+                "activity_id": state.conversation.activity_id,
+                "message_history": state.conversation.message_history
+            })
+            
         if is_existing_group_chat and state.conversation.message_history is not None:
             await manager.a_resume(messages=state.conversation.message_history, remove_termination_string=None) # type: ignore
 
