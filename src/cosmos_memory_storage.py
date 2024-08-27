@@ -216,7 +216,7 @@ class CosmosDbPartitionedStorage(Storage):
                 assert self.container
                 self.container.upsert_item(
                     body=doc,
-                    options=request_options,
+                    request_options=request_options,
                 )
             except cosmos_errors.HttpResponseError as err:
                 raise err
