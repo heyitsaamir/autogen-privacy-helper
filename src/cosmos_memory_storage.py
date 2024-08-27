@@ -277,7 +277,7 @@ class CosmosDbPartitionedStorage(Storage):
                 )
 
     def __get_partition_key(self, key: str) -> str:
-        return key
+        return '/id'
 
     @staticmethod
     def __create_si(result) -> object:
