@@ -47,7 +47,8 @@
                             "title": "/clear",
                             "description": "Clear the current context"
                         }
-                    ]
+                    ],
+                    "scopes": ["groupChat", "groupchat", "personal"]
                 }
             ]
         }
