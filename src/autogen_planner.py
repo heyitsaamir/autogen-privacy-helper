@@ -84,15 +84,22 @@ class AutoGenPlanner(Planner):
             state.conversation.started_waiting_for_user_input_at = None
             message = chat_result.summary
 
-        state.conversation.message_history = chat_result.chat_history
         attachments = []
         if isinstance(message, str) and message.startswith('data:'):
             mime_type = re.search(r'data:(.*?);', message)
             if mime_type is not None and mime_type.group(1) is not None:
                 attachments.append(Attachment(content_type=mime_type.group(1), content_url=message))
                 message = "👇"
+        last_message = chat_result.chat_history[-1] if len(chat_result.chat_history) > 0 else None
+        if last_message is not None:
+            last_message_content = last_message.get("content")
+            if last_message_content is not None and isinstance(last_message_content, str) and last_message_content.startswith('data:'):
+                chat_result.chat_history.remove(last_message)
+                
         if len(attachments) == 0 and Config.ENABLE_CHAT_HISTORY_SENDING:
             attachments.append(create_chat_history_ac(chat_result))
+            
+        state.conversation.message_history = chat_result.chat_history
         return Plan(
             commands=[
                 PredictedSayCommandWithAttachments(
