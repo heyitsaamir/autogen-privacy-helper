@@ -80,7 +80,8 @@ def set_appropriate_groups(candidate, boundary):
                 elif is_in(current, boundary) and (current.group is None or not is_in(current.group, boundary)):
                     temp = current.group
                     current.group = boundary
-                    set_appropriate_groups(boundary, temp)
+                    if temp is not None:
+                        set_appropriate_groups(boundary, temp)
                     break
                 current = current.group
 
