@@ -23,6 +23,7 @@ from privacy_review_assistant_group import PrivacyReviewAssistantGroup
 from config import Config
 from cosmos_memory_storage import CosmosDbPartitionedStorage
 from state import AppTurnState
+from threat_model_file_utils import get_threat_model_image_file, get_threat_model_xml_file
 
 config = Config()
 llm_config = config.build_llm_config()
@@ -43,13 +44,21 @@ adapter = TeamsAdapter(config)
 downloader = TeamsAttachmentDownloader(
     TeamsAttachmentDownloaderOptions(config.APP_ID, adapter))
 
+def message_builder(context: TurnContext, state: AppTurnState) -> str:
+    if context.activity.text:
+        return context.activity.text
+    if get_threat_model_xml_file(state) or get_threat_model_image_file(state):
+        return "Please evaluate this threat model file"
+    return "Hi"
+
 app = Application[AppTurnState](
     ApplicationOptions(
         bot_app_id=config.APP_ID,
         storage=storage,
         adapter=adapter,
         ai=AIOptions(planner=AutoGenPlanner(llm_config=llm_config,
-                     build_group_chat=threat_model_reviewer_group.group_chat_builder)),
+                     build_group_chat=threat_model_reviewer_group.group_chat_builder,
+                     message_builder=message_builder)),
         file_downloaders=[downloader],
     ),
 )

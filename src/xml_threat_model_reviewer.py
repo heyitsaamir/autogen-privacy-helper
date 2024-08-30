@@ -13,9 +13,11 @@ from botbuilder.core import TurnContext
 from svg_to_png.svg_to_png import load_threat_model
 from asyncio import ensure_future
 
+from threat_model_file_utils import get_threat_model_xml_file
 from threat_model_visualizer import ThreatModelImageVisualizer
 
 from state import AppTurnState
+
 class ThreatModelDataExtractor(ThreatModelImageVisualizer):
     def __init__(self, state: AppTurnState):
         self.label_names = None
@@ -24,18 +26,14 @@ class ThreatModelDataExtractor(ThreatModelImageVisualizer):
         super(ThreatModelImageVisualizer, self).__init__()
     
     def extract_data_from_state(self):
-        if self.state.temp.input_files and self.state.temp.input_files[0]:
-            if isinstance(self.state.temp.input_files[0], InputFile):
-                if self.state.temp.input_files[0].content_type == 'application/vnd.microsoft.teams.file.download.info':
-                    # make sure it's a threat model file
-                    if self.state.temp.input_files[0].content and isinstance(self.state.temp.input_files[0].content, bytes):
-                        if self.state.temp.input_files[0].content.startswith(b"<ThreatModel"):
-                            svg_str = self.state.temp.input_files[0].content.decode("utf-8")
-                            threat_model = load_threat_model(svg_content=svg_str)
-                            self.label_names = threat_model.get_label_names()
-                            self.node_data = threat_model.get_node_data()
-                            self.boundary_names = threat_model.get_boundary_names()
-                            self.node_label_pair_data = threat_model.get_node_label_pair_data()
+        xml_file = get_threat_model_xml_file(self.state)
+        if xml_file:
+            svg_str = xml_file.content.decode("utf-8")
+            threat_model = load_threat_model(svg_content=svg_str)
+            self.label_names = threat_model.get_label_names()
+            self.node_data = threat_model.get_node_data()
+            self.boundary_names = threat_model.get_boundary_names()
+            self.node_label_pair_data = threat_model.get_node_label_pair_data()
 
 class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelDataExtractor):
     def __init__(self, context: TurnContext, say_when_evaluating: bool, max_width: int, **kwargs):

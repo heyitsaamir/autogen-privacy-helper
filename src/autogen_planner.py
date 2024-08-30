@@ -22,10 +22,10 @@ class PredictedSayCommandWithAttachments(PredictedSayCommand):
 
 
 class AutoGenPlanner(Planner):
-    def __init__(self, llm_config, build_group_chat: Callable[[TurnContext, AppTurnState, Agent], Union[GroupChat,None]], messageBuilder: Optional[Callable[[TurnContext, AppTurnState], str]] = None) -> None:
+    def __init__(self, llm_config, build_group_chat: Callable[[TurnContext, AppTurnState, Agent], Union[GroupChat,None]], message_builder: Optional[Callable[[TurnContext, AppTurnState], str]] = None) -> None:
         self.llm_config = llm_config
         self.build_group_chat = build_group_chat
-        self.messageBuilder = messageBuilder
+        self.message_builder = message_builder
         super().__init__()
 
     async def begin_task(self, context, state: AppTurnState):
@@ -68,7 +68,7 @@ class AutoGenPlanner(Planner):
         if is_existing_group_chat and state.conversation.message_history is not None:
             await manager.a_resume(messages=state.conversation.message_history, remove_termination_string=None) # type: ignore
 
-        incoming_message = self.messageBuilder(context, state) if self.messageBuilder is not None else context.activity.text
+        incoming_message = self.message_builder(context, state) if self.message_builder is not None else context.activity.text
         chat_result = await user_proxy.a_initiate_chat(recipient=manager, message=incoming_message, clear_history=False)
         chat_history = chat_result.chat_history[:]
         for chat in chat_history:

@@ -15,6 +15,8 @@ from svg_to_png.svg_to_png import convert_svg_to_png
 from svg_to_png.lib.ThreatModel import Key_Label_Map, User_Friendly_Block_Types
 from asyncio import ensure_future
 
+from threat_model_file_utils import get_threat_model_image_file, get_threat_model_xml_file
+
 type Hints_To_Send = Union[List[User_Friendly_Block_Types],
                          Literal["all"]]
 
@@ -27,17 +29,15 @@ class ThreatModelImageVisualizer():
     def extract_image_from_state(self, build_for_ai_context: bool):
         img = None
         key_label_map: Optional[Key_Label_Map] = None
-        if self.state.temp.input_files and self.state.temp.input_files[0]:
-            if isinstance(self.state.temp.input_files[0], InputFile):
-                if self.state.temp.input_files[0].content_type == 'image/jpeg' or self.state.temp.input_files[0].content_type == 'image/png':
-                    img = self._get_image(self.state.temp.input_files[0])
-                elif self.state.temp.input_files[0].content_type == 'application/vnd.microsoft.teams.file.download.info':
-                    # make sure it's a threat model file
-                    if self.state.temp.input_files[0].content and isinstance(self.state.temp.input_files[0].content, bytes):
-                        if self.state.temp.input_files[0].content.startswith(b"<ThreatModel"):
-                            svg_str = self.state.temp.input_files[0].content.decode("utf-8")
-                            key_label_map = convert_svg_to_png(svg_content=svg_str, out_file="threat_model", build_for_ai_context=build_for_ai_context)
-                            img = self._get_image("threat_model.png")
+        threat_model_image = get_threat_model_image_file(self.state)
+        if threat_model_image:
+            img = Image.open(io.BytesIO(threat_model_image.content))
+        else:
+            xml_file = get_threat_model_xml_file(self.state)
+            if xml_file:
+                svg_str = xml_file.content.decode("utf-8")
+                key_label_map = convert_svg_to_png(svg_content=svg_str, out_file="threat_model", build_for_ai_context=build_for_ai_context)
+                img = Image.open("threat_model.png")
         self.img = img
         self.key_label_map = key_label_map
     
