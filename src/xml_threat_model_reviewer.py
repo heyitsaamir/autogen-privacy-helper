@@ -19,13 +19,14 @@ from threat_model_visualizer import ThreatModelImageVisualizer
 
 from state import AppTurnState
 
+
 class ThreatModelDataExtractor(ThreatModelImageVisualizer):
     def __init__(self, state: AppTurnState):
         self.label_names = None
         self.no_boundary_nodes = None
         self.state = state
         super(ThreatModelImageVisualizer, self).__init__()
-    
+
     def extract_data_from_state(self):
         xml_file = get_threat_model_xml_file(self.state)
         if xml_file:
@@ -36,19 +37,26 @@ class ThreatModelDataExtractor(ThreatModelImageVisualizer):
             self.boundary_names = threat_model.get_boundary_names()
             self.node_label_pair_data = threat_model.get_node_label_pair_data()
 
-class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelDataExtractor):
-    def __init__(self, context: TurnContext, say_when_evaluating: bool, max_width: int, **kwargs):
+
+class XMLThreatModelImageAddToMessageCapability(
+    AgentCapability, ThreatModelDataExtractor
+):
+    def __init__(
+        self, context: TurnContext, say_when_evaluating: bool, max_width: int, **kwargs
+    ):
         self.say_when_evaluating = say_when_evaluating
         self.context = context
         self.max_width = max_width
         self.img = None
-        
+
         super().__init__()
         super(AgentCapability, self).__init__(**kwargs)
-    
+
     def add_to_agent(self, agent: ConversableAgent):
-        agent.register_hook("process_all_messages_before_reply", self._add_data_to_messages)
-        
+        agent.register_hook(
+            "process_all_messages_before_reply", self._add_data_to_messages
+        )
+
     def _add_data_to_messages(self, messages):
         if self.img is None:
             self.extract_image_from_state(build_for_ai_context=False)
@@ -72,14 +80,14 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
             messages = messages.copy()
             messages.append({"content": "No threat model exists.", "role": "user"})
         return messages
-    
+
     def resize(self, max_width: int):
         assert self.img is not None, "There is no image to resize!"
         new_img = Image.new(self.img.mode, self.img.size)
-        wpercent = (max_width / float(self.img.size[0]))
+        wpercent = max_width / float(self.img.size[0])
         hsize = int((float(self.img.size[1]) * float(wpercent)))
         self.img = new_img.resize((max_width, hsize))
-    
+
     async def _say_when_evaluating(self, img: Image.Image):
         if self.say_when_evaluating:
             jpeg = self.convert_to_jpeg_if_needed(img)
@@ -88,13 +96,24 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
                     Activity(
                         type=ActivityTypes.message,
                         text="Here is the threat model we are evaluating",
-                        attachments=[Attachment(content_type="image/jpeg", content_url=pil_to_data_uri(jpeg))]
+                        attachments=[
+                            Attachment(
+                                content_type="image/jpeg",
+                                content_url=pil_to_data_uri(jpeg),
+                            )
+                        ],
                     )
                 )
 
-specs = load_specs_from_json('src/specs.json')
 
-def setup_xml_threat_model_reviewer(llm_config, context: TurnContext, state: AppTurnState, threat_model_spec: str = """
+specs = load_specs_from_json("src/specs.json")
+
+
+def setup_xml_threat_model_reviewer(
+    llm_config,
+    context: TurnContext,
+    state: AppTurnState,
+    threat_model_spec: str = """
 1. All nodes should be inside a boundary. Are there any nodes not in a boundary? To determine if a node is within a boundary in the node data for a node, has_boundary should be true. Do not tell the user of the has_boundary flag, however, just whether a node is not in a boundary.
 2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you
 the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", this is valid, because all numbers between 1 and 3 are there, but if it were "1. FlowA" and second 
@@ -104,12 +123,12 @@ the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", thi
 5. Each storage node can have a tag like 30D that represents its retention. If no storage nodes have this tag issue a warning but this should not be a validation failure. If there is a tag that appears like it's a duration it should be in compact duration format. Only for [NEW] nodes
 6. Each label should have a string representing the type of data it passes. Therefore it should include one of the following: AC, CC, EUII, OII, SM PND, EUPI, SD, FB, AD PPD MSD.
 7. There should not be any JSON in any of the labels. Only tags should be in the labels.
-    """):
-    
+    """,
+):
     # threat_model_spec = ''
     # for spec in specs:
     #     threat_model_spec += f"#{spec.id}. {spec.spec}\n{spec.instructions_to_solve}\n\n"
-    
+
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",
         description="You are a threat model evaluator that evaluates threat models based on given data and rules.",
@@ -125,12 +144,12 @@ the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", thi
             3. **Warnings** for items that are not incorrect but are warnings
                                                     
             For any node that has newline characters like \n or \r please filter out these characters in your response. Also, filter out any JSON.""",
-        llm_config={"config_list": [llm_config],
-                        "timeout": 60, "temperature": 0},
+        llm_config={"config_list": [llm_config], "timeout": 60, "temperature": 0},
     )
 
-    capability = XMLThreatModelImageAddToMessageCapability(context, True, state=state, max_width=400)
+    capability = XMLThreatModelImageAddToMessageCapability(
+        context, True, state=state, max_width=400
+    )
     capability.add_to_agent(assistant)
 
     return assistant
-

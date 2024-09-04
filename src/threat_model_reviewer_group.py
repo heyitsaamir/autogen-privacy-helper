@@ -1,23 +1,32 @@
 from typing import Union
 from autogen import AssistantAgent, GroupChat, Agent
-from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
+from autogen.agentchat.contrib.multimodal_conversable_agent import (
+    MultimodalConversableAgent,
+)
 
 from botbuilder.core import TurnContext
 
 from state import AppTurnState
 from threat_model_visualizer import ThreatModelImageAddToMessageCapability
 
+
 class ThreatModelReviewerGroup:
-    def __init__(self, llm_config, threat_model_spec: str = """
+    def __init__(
+        self,
+        llm_config,
+        threat_model_spec: str = """
 1. All nodes (boxes or nodes surrounded by a black border) should be inside a red boundary. Are there any nodes outside the red boundary?
 2. It should be clear to tell what each red boundary is.
 3. All arrows should be labeled (labels are inside green boxes).
 4. All labels for the arrows should have sequential numbers. These numbers indicate the order in which the flow happens. If all arrows do not contains labels, indicate which ones. Otherwise state the flow of data in the order that the arrow point
-"""):
+""",
+    ):
         self.llm_config = llm_config
         self.threat_model_spec = threat_model_spec
 
-    def group_chat_builder(self, context: TurnContext, state: AppTurnState, user_agent: Agent) -> GroupChat:
+    def group_chat_builder(
+        self, context: TurnContext, state: AppTurnState, user_agent: Agent
+    ) -> GroupChat:
         group_chat_agents = [user_agent]
         questioner_agent = AssistantAgent(
             name="Questioner",
@@ -36,10 +45,13 @@ To ask if nodes are for a valid service or data store in the system, ask one que
 If you have no questions to ask, say "NO_QUESTIONS" and nothing else.
             """,
             description="A questioner agent that can ask questions based on a threat model picture. It can ask questions about the threat model from the given picture or about the broader system.",
-            llm_config={"config_list": [self.llm_config],
-                        "timeout": 60, "temperature": 0},
+            llm_config={
+                "config_list": [self.llm_config],
+                "timeout": 60,
+                "temperature": 0,
+            },
         )
-                            
+
         answerer_agent = MultimodalConversableAgent(
             name="Threat_Model_Image_Answerer",
             system_message="""You are an threat model answerer agent.
@@ -55,10 +67,15 @@ your clarifying question
 </CLARIFYING_QUESTION>
             """,
             description="A answerer agent that can exclusively answer questions based on a threat model picture.",
-            llm_config={"config_list": [self.llm_config],
-                        "timeout": 60, "temperature": 0},
+            llm_config={
+                "config_list": [self.llm_config],
+                "timeout": 60,
+                "temperature": 0,
+            },
         )
-        threat_model_capability = ThreatModelImageAddToMessageCapability(context, say_when_evaluating=True, state=state, max_width=400)
+        threat_model_capability = ThreatModelImageAddToMessageCapability(
+            context, say_when_evaluating=True, state=state, max_width=400
+        )
         threat_model_capability.add_to_agent(answerer_agent)
 
         answer_evaluator_agent = AssistantAgent(
@@ -72,8 +89,11 @@ Evaluate the answers based on the following spec criteria:
 For each spec criteria that is not met, provide some action items on how to improve the threat model to meet the requirement.
             """,
             description="An answer evaluator agent that can evaluate the answers given by the Threat_Model_Answerer agent.",
-            llm_config={"config_list": [self.llm_config],
-                        "timeout": 60, "temperature": 0},
+            llm_config={
+                "config_list": [self.llm_config],
+                "timeout": 60,
+                "temperature": 0,
+            },
         )
 
         for agent in [questioner_agent, answerer_agent, answer_evaluator_agent]:
@@ -98,13 +118,13 @@ For each spec criteria that is not met, provide some action items on how to impr
                     return user_agent
                 else:
                     return questioner_agent
-                
+
             # ## If the last speaker is the rag_assistant and it has just provided a tool response,
             # ## then we want to convert that into a user message.
             # if last_speaker == rag_assistant and content and last_message.get("tool_responses"):
             #     return rag_assistant
-            
-            return 'auto'
+
+            return "auto"
 
         groupchat = GroupChat(
             agents=group_chat_agents,
@@ -115,8 +135,8 @@ For each spec criteria that is not met, provide some action items on how to impr
                 user_agent: [questioner_agent],
                 questioner_agent: [answerer_agent, answer_evaluator_agent],
                 answerer_agent: [questioner_agent, user_agent],
-                answer_evaluator_agent: [user_agent]
+                answer_evaluator_agent: [user_agent],
             },
-            speaker_transitions_type="allowed"
+            speaker_transitions_type="allowed",
         )
         return groupchat
