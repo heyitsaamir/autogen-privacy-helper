@@ -10,6 +10,7 @@ from autogen.agentchat.contrib.img_utils import pil_to_data_uri
 from teams.input_file import InputFile
 from botbuilder.core import TurnContext
 
+from Spec import load_specs_from_json
 from svg_to_png.svg_to_png import load_threat_model
 from asyncio import ensure_future
 
@@ -49,7 +50,6 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
         agent.register_hook("process_all_messages_before_reply", self._add_data_to_messages)
         
     def _add_data_to_messages(self, messages):
-
         if self.img is None:
             self.extract_image_from_state(build_for_ai_context=False)
             self.extract_data_from_state()
@@ -92,6 +92,8 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
                     )
                 )
 
+specs = load_specs_from_json('src/specs.json')
+
 def setup_xml_threat_model_reviewer(llm_config, context: TurnContext, state: AppTurnState, threat_model_spec: str = """
 1. All nodes should be inside a boundary. Are there any nodes not in a boundary? To determine if a node is within a boundary in the node data for a node, has_boundary should be true. Do not tell the user of the has_boundary flag, however, just whether a node is not in a boundary.
 2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you
@@ -103,6 +105,11 @@ the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", thi
 6. Each label should have a string representing the type of data it passes. Therefore it should include one of the following: AC, CC, EUII, OII, SM PND, EUPI, SD, FB, AD PPD MSD.
 7. There should not be any JSON in any of the labels. Only tags should be in the labels.
     """):
+    
+    # threat_model_spec = ''
+    # for spec in specs:
+    #     threat_model_spec += f"#{spec.id}. {spec.spec}\n{spec.instructions_to_solve}\n\n"
+    
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",
         description="You are a threat model evaluator that evaluates threat models based on given data and rules.",
