@@ -2,15 +2,16 @@ from typing import Literal
 import re
 from autogen import ConversableAgent
 
+
 class TeamsUserProxy(ConversableAgent):
-    def __init__(self,
-                 human_input_mode: Literal["ALWAYS",
-                                           "TERMINATE", "NEVER"] = "ALWAYS",
-                 **kwargs):
+    def __init__(
+        self,
+        human_input_mode: Literal["ALWAYS", "TERMINATE", "NEVER"] = "ALWAYS",
+        **kwargs,
+    ):
         super().__init__(human_input_mode=human_input_mode, **kwargs)
         self.question_for_user = None
-        self.hook_lists['process_last_received_message'].append(
-            self.is_user_question)
+        self.hook_lists["process_last_received_message"].append(self.is_user_question)
 
     def is_user_question(self, message: str) -> str:
         last_message = message
@@ -19,7 +20,7 @@ class TeamsUserProxy(ConversableAgent):
         if last_message is not None:
             ## If you want a smarter check for whether the last message is a question, you can use the following code,
             ## but by default, we can assume that all messages to the user are questions (in this example)
-            
+
             # messages = [{"role": "assistant", "content": last_message}]
             # messages.append({
             #     "role": "user",
@@ -34,9 +35,13 @@ class TeamsUserProxy(ConversableAgent):
             #     is_question = "yes" in extracted_message.lower()
             question = last_message
 
-        if (is_question):
+        if is_question:
             if question is not None:
-                match = re.search(r"<CLARIFYING_QUESTION>(.*?)</CLARIFYING_QUESTION>", question, re.DOTALL)
+                match = re.search(
+                    r"<CLARIFYING_QUESTION>(.*?)</CLARIFYING_QUESTION>",
+                    question,
+                    re.DOTALL,
+                )
                 if match:
                     question = match.group(1).strip()
             self.question_for_user = question
@@ -47,6 +52,4 @@ class TeamsUserProxy(ConversableAgent):
     # Since this UserProxy is designed to be used asynchrnously
     # we exist the conversation, then wait asynchronously for the next user message
     def get_human_input(self, _prompt) -> str:
-        return 'exit'
-
-
+        return "exit"

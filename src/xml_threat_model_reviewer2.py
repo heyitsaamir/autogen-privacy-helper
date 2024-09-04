@@ -4,28 +4,38 @@ from autogen import AssistantAgent, ConversableAgent, Agent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen_utils import ImmediateExecutorCapability
 from pydantic import BaseModel
-from svg_to_png.lib.ThreatModel import User_Friendly_Block_Types
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
 from Spec import Spec, load_specs_from_json
 
-specs = load_specs_from_json('src/specs.json')
+specs = load_specs_from_json("src/specs.json")
+
 
 def build_instruction(spec: Spec):
-        return f"""Spec id {spec.id} - {spec.spec}\n{spec.instructions_to_solve}
+    return f"""Spec id {spec.id} - {spec.spec}\n{spec.instructions_to_solve}
 If the criteria is not met, then {spec.improvement_hints}
 """
 
-tag_with_headers = {
-    "green": "✅",
-    "red": "❌",
-    "yellow": "⚠️"
-}
+
+tag_with_headers = {"green": "✅", "red": "❌", "yellow": "⚠️"}
+
 
 class SpecAnswer(BaseModel):
     spec_id: Annotated[int, "The spec id to answer"]
-    detailed_answer: Annotated[str, "Does the threat model meet the spec criteria? Why or why not?"]
-    steps_to_improve: Annotated[str, "What are exact steps to improve the threat model to meet the spec criteria? Use 'None' if no steps to improve"]
-    tag: Annotated[Union[Annotated[Literal["green"], "Spec criteria is met"], Annotated[Literal["red"], "Items needs to be fixed to meet criteria"], Annotated[Literal["yellow"], "Criteria is met but can be improved"]], "The tag of the spec answer"]
+    detailed_answer: Annotated[
+        str, "Does the threat model meet the spec criteria? Why or why not?"
+    ]
+    steps_to_improve: Annotated[
+        str,
+        "What are exact steps to improve the threat model to meet the spec criteria? Use 'None' if no steps to improve",
+    ]
+    tag: Annotated[
+        Union[
+            Annotated[Literal["green"], "Spec criteria is met"],
+            Annotated[Literal["red"], "Items needs to be fixed to meet criteria"],
+            Annotated[Literal["yellow"], "Criteria is met but can be improved"],
+        ],
+        "The tag of the spec answer",
+    ]
 
 
 class EvaluateSpecCapability(AgentCapability):
@@ -41,6 +51,7 @@ class EvaluateSpecCapability(AgentCapability):
 
         def new_term_msg(x):
             return original_term_msg(x) or self.spec_index >= len(self.specs)
+
         agent._is_termination_msg = new_term_msg
 
     def _send_question(self, self2, messages, sender, config):
@@ -51,14 +62,15 @@ class EvaluateSpecCapability(AgentCapability):
             return [True, message]
         return [False, None]
 
-    def add_answer(self, answer: SpecAnswer) -> Annotated[str, "The detailed answer to the spec question"]:
+    def add_answer(
+        self, answer: SpecAnswer
+    ) -> Annotated[str, "The detailed answer to the spec question"]:
         self.spec_index_to_answer[answer.spec_id] = answer
         return answer.detailed_answer
 
+
 def setup_xml_threat_model_reviewer(llm_config, context, state):
-    questioner_agent = AssistantAgent(
-        name="Questioner"
-    )
+    questioner_agent = AssistantAgent(name="Questioner")
     cap = EvaluateSpecCapability(specs=specs)
     cap.add_to_agent(questioner_agent)
 
@@ -70,16 +82,20 @@ The threat model indicates the flow of data in a bigger system. You do not have 
 Answer the questions as clearly and concisely as possible. Always use add_answer to add an answer to a spec question.
             """,
         description="A answerer agent that can exclusively answer questions based on a threat model picture.",
-        llm_config={"config_list": [llm_config],
-                    "timeout": 60, "temperature": 0},
+        llm_config={"config_list": [llm_config], "timeout": 60, "temperature": 0},
     )
     XMLThreatModelImageAddToMessageCapability(
-        context, say_when_evaluating=True, state=state, max_width=400).add_to_agent(answerer_agent)
+        context, say_when_evaluating=True, state=state, max_width=400
+    ).add_to_agent(answerer_agent)
 
-    def add_answer(answer: Annotated[SpecAnswer, "The answer to the spec question"]) -> Annotated[str, "The detailed answer to the spec question"]:
+    def add_answer(
+        answer: Annotated[SpecAnswer, "The answer to the spec question"],
+    ) -> Annotated[str, "The detailed answer to the spec question"]:
         return cap.add_answer(answer)
-    ImmediateExecutorCapability().add_to_agent(answerer_agent, add_answer,
-                                               description="Add an answer to a spec question")
+
+    ImmediateExecutorCapability().add_to_agent(
+        answerer_agent, add_answer, description="Add an answer to a spec question"
+    )
 
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",
@@ -92,67 +108,80 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
             spec_question = next(filter(lambda x: x.id == spec_id, specs))
             spec_answers.append((spec_question, spec_answer))
         spec_answers = sorted(spec_answers, key=lambda x: x[1].spec_id)
-        
-        containers = [build_container_for_answer(spec, spec_answer) for spec, spec_answer in spec_answers]
+
+        containers = [
+            build_container_for_answer(spec, spec_answer)
+            for spec, spec_answer in spec_answers
+        ]
         card = build_adaptive_card(containers)
+
         def set_default(obj):
             if isinstance(obj, set):
                 return list(obj)
             raise TypeError
-        return f"adaptive_card:{json.dumps(card, ensure_ascii=False, default=set_default)}"
 
-    assistant.register_nested_chats([
-        {
-            "recipient": questioner_agent,
-            "sender": answerer_agent,
-            "summary_method": summarize,
-            "chat_id": 1,
-        },
-    ], trigger=lambda sender: sender not in [assistant], use_async=True)
+        return (
+            f"adaptive_card:{json.dumps(card, ensure_ascii=False, default=set_default)}"
+        )
+
+    assistant.register_nested_chats(
+        [
+            {
+                "recipient": questioner_agent,
+                "sender": answerer_agent,
+                "summary_method": summarize,
+                "chat_id": 1,
+            },
+        ],
+        trigger=lambda sender: sender not in [assistant],
+        use_async=True,
+    )
 
     return assistant
 
+
 def build_container_for_answer(spec: Spec, spec_answer: SpecAnswer):
     return {
-            "type": "Container",
-            "items": [
-                {
-                    "type": "TextBlock",
-                    "text": spec.spec,
-                    "wrap": True,
-                    "weight": "Bolder",
-                },
-                {
-                    "type": "ColumnSet",
-                    "columns": [
-                        {
-                            "type": "Column",
-                            "width": "auto",
-                            "items": [
-                                {
-                                    "type": "TextBlock",
-                                    "text": tag_with_headers[spec_answer.tag],
-                                    "wrap": True
-                                }
-                            ]
-                        },
-                        {
-                            "type": "Column",
-                            "width": "stretch",
-                            "items": [
-                                {
-                                    "type": "TextBlock",
-                                    "text": spec_answer.detailed_answer,
-                                    "wrap": True
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            "separator": True
-        }
-    
+        "type": "Container",
+        "items": [
+            {
+                "type": "TextBlock",
+                "text": spec.spec,
+                "wrap": True,
+                "weight": "Bolder",
+            },
+            {
+                "type": "ColumnSet",
+                "columns": [
+                    {
+                        "type": "Column",
+                        "width": "auto",
+                        "items": [
+                            {
+                                "type": "TextBlock",
+                                "text": tag_with_headers[spec_answer.tag],
+                                "wrap": True,
+                            }
+                        ],
+                    },
+                    {
+                        "type": "Column",
+                        "width": "stretch",
+                        "items": [
+                            {
+                                "type": "TextBlock",
+                                "text": spec_answer.detailed_answer,
+                                "wrap": True,
+                            }
+                        ],
+                    },
+                ],
+            },
+        ],
+        "separator": True,
+    }
+
+
 def build_adaptive_card(spec_answer_containers: List[Dict]):
     body = [
         {
@@ -160,13 +189,13 @@ def build_adaptive_card(spec_answer_containers: List[Dict]):
             "text": "Threat model review",
             "wrap": True,
             "weight": "Bolder",
-            "style": "heading"
+            "style": "heading",
         },
-        *spec_answer_containers
+        *spec_answer_containers,
     ]
     return {
         "type": "AdaptiveCard",
         "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
         "version": "1.5",
-        "body": body
+        "body": body,
     }

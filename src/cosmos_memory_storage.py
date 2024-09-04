@@ -1,9 +1,8 @@
-"""Implements a CosmosDB based storage provider using partitioning for a bot.
-"""
+"""Implements a CosmosDB based storage provider using partitioning for a bot."""
 
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-from typing import Dict, List, Union, Any, Optional
+from typing import Dict, List, Union, Any
 from threading import Lock
 import json
 from hashlib import sha256
@@ -15,6 +14,7 @@ import azure.cosmos.errors as cosmos_errors  # pylint: disable=no-name-in-module
 from botbuilder.core.storage import Storage
 from azure.core.credentials import TokenCredential
 from azure.cosmos.partition_key import PartitionKey
+
 
 class CosmosDbKeyEscape:
     @staticmethod
@@ -260,8 +260,7 @@ class CosmosDbPartitionedStorage(Storage):
                     )
                 else:
                     self.client = cosmos_client.CosmosClient(
-                        self.config.cosmos_db_endpoint,
-                        self.config.credential
+                        self.config.cosmos_db_endpoint, self.config.credential
                     )
 
             if not self.database:
@@ -278,7 +277,7 @@ class CosmosDbPartitionedStorage(Storage):
                 print(f"Creating container {self.config.container_id}")
                 self.container = self.database.create_container_if_not_exists(
                     self.config.container_id,
-                    PartitionKey('/id', kind="Hash"),
+                    PartitionKey("/id", kind="Hash"),
                 )
 
     def __get_partition_key(self, key: str) -> str:
