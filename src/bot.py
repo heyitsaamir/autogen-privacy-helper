@@ -72,7 +72,7 @@ async def say_command(context: ActionTurnContext[PredictedSayCommandWithAttachme
         else ""
     )
 
-    if content:
+    if content or context.data.response.attachments:
         response = await context.send_activity(
             Activity(
                 type=ActivityTypes.message,

@@ -1,3 +1,4 @@
+import json
 import re
 from typing import List, Callable, Optional, Union
 from datetime import datetime
@@ -64,9 +65,11 @@ class AutoGenPlanner(Planner):
                 "activity_id": state.conversation.activity_id,
                 "message_history": state.conversation.message_history
             })
-            
-        if is_existing_group_chat and state.conversation.message_history is not None:
-            await manager.a_resume(messages=state.conversation.message_history, remove_termination_string=None) # type: ignore
+        
+        # Disabling resuming for now since we aren't really using multi-turn 
+        # much currently. We can enable this later if needed.
+        # if is_existing_group_chat and state.conversation.message_history is not None:
+            # await manager.a_resume(messages=state.conversation.message_history, remove_termination_string=None) # type: ignore
 
         incoming_message = self.message_builder(context, state) if self.message_builder is not None else context.activity.text
         chat_result = await user_proxy.a_initiate_chat(recipient=manager, message=incoming_message, clear_history=False)
@@ -90,6 +93,11 @@ class AutoGenPlanner(Planner):
             if mime_type is not None and mime_type.group(1) is not None:
                 attachments.append(Attachment(content_type=mime_type.group(1), content_url=message))
                 message = "👇"
+        elif isinstance(message, str) and message.startswith('adaptive_card:'):
+            adaptive_card = re.sub(r'adaptive_card:', '', message)
+            ac_json = json.loads(adaptive_card)
+            attachments.append(CardFactory.adaptive_card(ac_json))
+            message = "👇"
         last_message = chat_result.chat_history[-1] if len(chat_result.chat_history) > 0 else None
         if last_message is not None:
             last_message_content = last_message.get("content")
@@ -107,7 +115,7 @@ class AutoGenPlanner(Planner):
                     MessageWithAttachments(
                         'assistant', 
                         content=message, 
-                            attachments=attachments
+                        attachments=attachments
                         )
                     )
                 ]
@@ -126,7 +134,6 @@ def create_chat_history_ac(message: ChatResult) -> Attachment:
     return CardFactory.adaptive_card(
         {
             "type": "AdaptiveCard",
-            "speak": "3 minute energy flow with kayo video",
             "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
             "version": "1.5",
             "body": [

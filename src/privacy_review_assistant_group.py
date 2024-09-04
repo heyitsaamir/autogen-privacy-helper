@@ -5,7 +5,8 @@ from state import AppTurnState
 from rag_agents import setup_rag_assistant
 from visualizer_agent import setup_visualizer_agent
 from threat_model_visualizer import ThreatModelImageVisualizerCapability
-from xml_threat_model_reviewer import setup_xml_threat_model_reviewer
+# from xml_threat_model_reviewer import setup_xml_threat_model_reviewer
+from xml_threat_model_reviewer2 import setup_xml_threat_model_reviewer
 
 class PrivacyReviewAssistantGroup:
     def __init__(self, llm_config):

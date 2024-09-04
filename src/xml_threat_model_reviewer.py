@@ -49,7 +49,6 @@ class XMLThreatModelImageAddToMessageCapability(AgentCapability, ThreatModelData
         agent.register_hook("process_all_messages_before_reply", self._add_data_to_messages)
         
     def _add_data_to_messages(self, messages):
-
         if self.img is None:
             self.extract_image_from_state(build_for_ai_context=False)
             self.extract_data_from_state()
