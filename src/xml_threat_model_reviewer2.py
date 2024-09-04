@@ -6,29 +6,14 @@ from autogen_utils import ImmediateExecutorCapability
 from pydantic import BaseModel
 from svg_to_png.lib.ThreatModel import User_Friendly_Block_Types
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
-
-
-class Spec(BaseModel):
-    id: int
-    spec: str
-    instructions_to_solve: str
-    improvement_hints: str
-    hints_to_send: Union[List[User_Friendly_Block_Types],
-                         Literal["all"]] = "all"
-
-    def build_instruction(self):
-        return f"""Spec id {self.id} - {self.spec}\n{self.instructions_to_solve}
-If the criteria is not met, then {self.improvement_hints}
-"""
-
-
-def load_specs_from_json(file_path: str) -> List[Spec]:
-    with open(file_path, 'r') as file:
-        specs_data = json.load(file)
-    return [Spec(**spec) for spec in specs_data]
-
+from Spec import Spec, load_specs_from_json
 
 specs = load_specs_from_json('src/specs.json')
+
+def build_instruction(spec: Spec):
+        return f"""Spec id {spec.id} - {spec.spec}\n{spec.instructions_to_solve}
+If the criteria is not met, then {spec.improvement_hints}
+"""
 
 tag_with_headers = {
     "green": "✅",
@@ -61,7 +46,7 @@ class EvaluateSpecCapability(AgentCapability):
     def _send_question(self, self2, messages, sender, config):
         if self.spec_index < len(self.specs):
             print(f"Sending question for spec {self.specs[self.spec_index].id}")
-            message = f"{self.specs[self.spec_index].build_instruction()}"
+            message = f"{build_instruction(self.specs[self.spec_index])}"
             self.spec_index += 1
             return [True, message]
         return [False, None]
@@ -109,7 +94,7 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
         spec_answers = sorted(spec_answers, key=lambda x: x[1].spec_id)
         
         containers = [build_container_for_answer(spec, spec_answer) for spec, spec_answer in spec_answers]
-        card = build_adative_card(containers)
+        card = build_adaptive_card(containers)
         def set_default(obj):
             if isinstance(obj, set):
                 return list(obj)
@@ -168,7 +153,7 @@ def build_container_for_answer(spec: Spec, spec_answer: SpecAnswer):
             "separator": True
         }
     
-def build_adative_card(spec_answer_containers: List[Dict]):
+def build_adaptive_card(spec_answer_containers: List[Dict]):
     body = [
         {
             "type": "TextBlock",

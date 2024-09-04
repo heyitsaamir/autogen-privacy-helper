@@ -9,7 +9,7 @@
     {
         "id": 2,
         "spec": "All labels should be numbered with sequence indicators",
-        "instructions_to_solve": "The labels themselves may not be in sequential order, but the numbers in the sequence should indicate some sort of order. For example, if the labels are first \"1. FlowA\" and second \"3. FlowB\" and third, \"2. FlowC\", this is valid, because all numbers between 1 and 3 are there, but if it were \"1. FlowA\" and second \"4. FlowB\" and third, \"2. FlowC\" then this would be invalid, because 3 is missing. It's also possible that sequence indicators can have sub-sequences. Here are a number of valid flows: 1, 2, 3, 4 - All numbers are present (no subsequences exist) 1, 2, 2b, 3a, 4 - All numbers are present (subsequences exist, and are in order. 2a is not explicitly there but is assumed to be 2) 1, 1a, 1b, 2, 2a, 3 - All numbers are present (subsequences exist, and are in order) Here are a number of invalid flows: 1, 2, 4 - 3 is missing 1, 2b, 3 - 2a is missing 1, 2, 3, 3, 4 - There are multiple 3s 1, 2a, 2c, 3 - 2b is missing",
+        "instructions_to_solve": "The labels themselves may not be in sequential order, but the numbers in the sequence should indicate some sort of order. For example, if the labels are first \"1. FlowA\" and second \"3. FlowB\" and third, \"2. FlowC\", this is valid, because all numbers between 1 and 3 are there, but if it were \"1. FlowA\" and second \"4. FlowB\" and third, \"2. FlowC\" then this would be invalid, because 3 is missing. It's also possible that sequence indicators can have sub-sequences.\nHere are a number of valid flows:\n1, 2, 3, 4 - All numbers are present (no subsequences exist)\n1, 2, 2b, 3a, 4 - All numbers are present (subsequences exist, and are in order. 2a is not explicitly there but is assumed to be 2)\n1, 1a, 1b, 2, 2a, 3 - All numbers are present (subsequences exist, and are in order)\nHere are a number of invalid flows:\n1, 2, 4 - 3 is missing\n1, 2b, 3 - 2a is missing\n1, 2, 3, 3, 4 - There are multiple 3s\n1, 2a, 2c, 3 - 2b is missing",
         "improvement_hints": "Indicate which labels do not have sequential indicators",
         "hints_to_send": ["Node", "Data Flow"]
     },
@@ -23,7 +23,7 @@
     {
         "id": 4,
         "spec": "Each node should have a request and response flow",
-        "instructions_to_solve": "Validate a request and response for each node and that there is a label. If in the list of nodes with labels between them for two nodes either hasNode2ToNode1Curve or hasNode1ToNode2Curve are not true, say that there aren't curves in both directions between these nodes. Do not use strings like hasNode2ToNode1Curve in the response.",
+        "instructions_to_solve": "Validate a request and response for each node and that there is a label. If in the list of nodes with labels between them for two nodes either hasNode2ToNode1Curve or hasNode1ToNode2Curve are not true, say that there aren't curves in both directions between these nodes. \nDo not use strings like hasNode2ToNode1Curve in the response.",
         "improvement_hints": "Indicate which nodes do not have both a request and response flow",
         "hints_to_send": ["Node", "Data Flow"]
     },

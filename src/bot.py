@@ -106,16 +106,23 @@ async def on_login(context: TurnContext, state: AppTurnState):
 
 @app.message('/useVisual')
 async def set_to_visual(context: TurnContext, state: AppTurnState):
-    state.conversation.use_xml_evaluator = False
+    state.conversation.threat_model_evaluator = "visual"
     await state.save(context)
     await context.send_activity("Ready to use visual evaluator")
     return True
 
-@app.message('/useXML')
-async def set_to_xml(context: TurnContext, state: AppTurnState):
-    state.conversation.use_xml_evaluator = True
+@app.message('/useXMLSinglePrompt')
+async def set_to_xml_single_prompt(context: TurnContext, state: AppTurnState):
+    state.conversation.threat_model_evaluator = "xml_single_prompt"
     await state.save(context)
-    await context.send_activity("Ready to use XML evaluator")
+    await context.send_activity("Ready to use single prompt XML evaluator")
+    return True
+
+@app.message('/useXMLMultiPrompt')
+async def set_to_xml_multi_prompt(context: TurnContext, state: AppTurnState):
+    state.conversation.threat_model_evaluator = "xml_multi_prompt"
+    await state.save(context)
+    await context.send_activity("Ready to use single prompt XML evaluator")
     return True
 
 @app.activity("invoke")

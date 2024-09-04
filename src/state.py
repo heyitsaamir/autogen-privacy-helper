@@ -3,7 +3,7 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Literal
 
 from botbuilder.core import Storage, TurnContext
 from teams.state import ConversationState, TempState, TurnState, UserState
@@ -15,7 +15,7 @@ class AppConversationState(ConversationState):
     is_waiting_for_user_input: bool = False
     started_waiting_for_user_input_at: Optional[Union[datetime, str]] = None
     spec_url: Optional[str] = None
-    use_xml_evaluator: bool = True
+    threat_model_evaluator: Union[Literal['visual'], Literal['xml_single_prompt'], Literal['xml_multi_prompt']]
     activity_id: Optional[str] = None
 
     @classmethod
