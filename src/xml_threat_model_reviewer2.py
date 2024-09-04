@@ -4,7 +4,6 @@ from autogen import AssistantAgent, ConversableAgent, Agent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen_utils import ImmediateExecutorCapability
 from pydantic import BaseModel
-from svg_to_png.lib.ThreatModel import User_Friendly_Block_Types
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
 from Spec import Spec, load_specs_from_json
 

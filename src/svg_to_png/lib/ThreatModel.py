@@ -240,7 +240,7 @@ class ThreatModel:
 
         # TODO support multiple tabs
         tab = tabs[0]
-        tab_header = tab.findall(build_tag(THREAT_MODELING_XMLNS, "Header"))
+        _tab_header = tab.findall(build_tag(THREAT_MODELING_XMLNS, "Header"))
         tab_borders = tab.find(build_tag(THREAT_MODELING_XMLNS, "Borders"))
         tab_lines = tab.find(build_tag(THREAT_MODELING_XMLNS, "Lines"))
 

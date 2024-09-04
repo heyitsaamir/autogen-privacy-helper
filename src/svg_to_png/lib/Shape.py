@@ -1,5 +1,5 @@
 import drawsvg as draw
-from .utils import calculate_size, convert_base64_jpeg_to_png, wrap_text
+from .utils import convert_base64_jpeg_to_png, wrap_text
 
 NODE_TEXT_FONT_SIZE = 11
 INNER_TEXT_RATIO = 0.85

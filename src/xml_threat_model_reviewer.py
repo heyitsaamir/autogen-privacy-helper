@@ -1,13 +1,10 @@
-import io
-from typing import Union
 from PIL import Image
 from botbuilder.schema import Activity, ActivityTypes, Attachment
-from autogen.agentchat import AssistantAgent, Agent
+from autogen.agentchat import AssistantAgent
 from autogen.agentchat.contrib.multimodal_conversable_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.img_utils import pil_to_data_uri
 
-from teams.input_file import InputFile
 from botbuilder.core import TurnContext
 
 from Spec import load_specs_from_json

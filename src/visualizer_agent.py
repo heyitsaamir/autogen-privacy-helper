@@ -6,7 +6,6 @@ from autogen.agentchat.contrib.multimodal_conversable_agent import (
 )
 from threat_model_visualizer import (
     ThreatModelImageAddToMessageCapability,
-    Hints_To_Send,
 )
 from autogen_utils import ImmediateExecutorCapability
 from pydantic import BaseModel
