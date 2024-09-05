@@ -95,7 +95,7 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
     )
     ClearHistoryCapability().add_to_agent(answerer_agent)
     XMLThreatModelImageAddToMessageCapability(
-        context, say_when_evaluating=True, state=state, max_width=400
+        context, say_when_evaluating=True, state=state, max_width=400, set_message_to_second_last=True
     ).add_to_agent(answerer_agent)
 
     def add_answer(
