@@ -34,21 +34,22 @@ class ImmediateExecutorCapability(AgentCapability):
             _, res = sender.generate_tool_calls_reply([message], sender)
             return res.get("content") if isinstance(res, dict) else "Answered"
         return message
-    
+
+
 class TypingCapability(AgentCapability):
     def __init__(self, context: TurnContext, typing: TeamsTyping):
         self.typing = typing
         self.context = context
         super().__init__()
-    
+
     def add_to_agent(self, agent: ConversableAgent):
         agent.register_reply([Agent, None], self._send_typing)
         agent.register_hook("process_all_messages_before_reply", self._stop_typing)
-        
+
     async def _send_typing(self, self2, messages, sender, config):
         await self.typing.start(self.context)
         return [False, None]
-    
+
     def _stop_typing(self, messages):
         self.typing.stop()
         return messages

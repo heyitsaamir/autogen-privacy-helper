@@ -41,25 +41,26 @@ class SpecAnswer(BaseModel):
         ],
         "The tag of the spec answer",
     ]
-    
+
+
 class TypingCapability(AgentCapability):
     def __init__(self, context: TurnContext, typing: TeamsTyping):
         self.typing = typing
         self.context = context
         super().__init__()
-    
+
     def add_to_agent(self, agent: ConversableAgent):
         agent.register_reply([Agent, None], self._send_typing)
         agent.register_hook("process_all_messages_before_reply", self._stop_typing)
-        
+
     async def _send_typing(self, self2, messages, sender, config):
         await self.typing.start(self.context)
         return [False, None]
-    
+
     def _stop_typing(self, messages):
         self.typing.stop()
         return messages
-        
+
 
 class EvaluateSpecCapability(AgentCapability):
     def __init__(self, specs: List[Spec]):
@@ -107,7 +108,7 @@ class ClearHistoryCapability(AgentCapability):
 
 def setup_xml_threat_model_reviewer(llm_config, context, state):
     teams_typing = TeamsTyping(context)
-    
+
     questioner_agent = AssistantAgent(name="Questioner")
     evaluate_spec_capability = EvaluateSpecCapability(specs=specs)
     evaluate_spec_capability.add_to_agent(questioner_agent)
@@ -175,7 +176,10 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
 
     def summarize(self, recipient, summary_args):
         spec_answers: List[Tuple[Spec, SpecAnswer]] = []
-        for spec_id, spec_answer in evaluate_spec_capability.spec_index_to_answer.items():
+        for (
+            spec_id,
+            spec_answer,
+        ) in evaluate_spec_capability.spec_index_to_answer.items():
             spec_question = next(filter(lambda x: x.id == spec_id, specs))
             spec_answers.append((spec_question, spec_answer))
         spec_answers = sorted(spec_answers, key=lambda x: x[1].spec_id)
@@ -185,7 +189,7 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
             for spec, spec_answer in spec_answers
         ]
         card = build_adaptive_card(containers)
-        
+
         # Even though the capability handles stopping typing,
         # we can make sure it is stopped here as well in case of any errors
         teams_typing.stop()
