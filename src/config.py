@@ -42,6 +42,7 @@ class Config:
     ENABLE_CHAT_HISTORY_SENDING = (
         os.environ.get("ENABLE_CHAT_HISTORY_SENDING", "false").lower() == "true"
     )
+    ENABLE_RUNTIME_LOGGING = os.environ.get("ENABLE_RUNTIME_LOGGING", "false").lower() == "true"
 
     def build_llm_config(self):
         if self.OPENAI_KEY:

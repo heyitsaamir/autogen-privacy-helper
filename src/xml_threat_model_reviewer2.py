@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 from typing import List, Annotated, Dict, Tuple, Union, Literal
@@ -5,6 +6,8 @@ from autogen import AssistantAgent, ConversableAgent, Agent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen_utils import ImmediateExecutorCapability
 from pydantic import BaseModel
+from teams.typing import Typing as TeamsTyping
+from botbuilder.core import TurnContext
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
 from Spec import Spec, load_specs_from_json
 
@@ -38,7 +41,25 @@ class SpecAnswer(BaseModel):
         ],
         "The tag of the spec answer",
     ]
-
+    
+class TypingCapability(AgentCapability):
+    def __init__(self, context: TurnContext, typing: TeamsTyping):
+        self.typing = typing
+        self.context = context
+        super().__init__()
+    
+    def add_to_agent(self, agent: ConversableAgent):
+        agent.register_reply([Agent, None], self._send_typing)
+        agent.register_hook("process_all_messages_before_reply", self._stop_typing)
+        
+    async def _send_typing(self, self2, messages, sender, config):
+        await self.typing.start(self.context)
+        return [False, None]
+    
+    def _stop_typing(self, messages):
+        self.typing.stop()
+        return messages
+        
 
 class EvaluateSpecCapability(AgentCapability):
     def __init__(self, specs: List[Spec]):
@@ -57,6 +78,8 @@ class EvaluateSpecCapability(AgentCapability):
         agent._is_termination_msg = new_term_msg
 
     async def _send_question(self, self2, messages, sender, config):
+        # wait for 2 seconds
+        await asyncio.sleep(2)
         if self.spec_index < len(self.specs):
             print(f"Sending question for spec {self.specs[self.spec_index].id}")
             message = f"{build_instruction(self.specs[self.spec_index])}"
@@ -82,21 +105,12 @@ class ClearHistoryCapability(AgentCapability):
         return [messages[-1]]
 
 
-# class XMLPreprocessCapability():
-#     # takes a xml threat model capability
-#     # the main goal is to preprocess it
-#     # so when preprocess is called, it extracts the data
-#     # then once it's done, it can update the capability with updated data
-#     def __init__(self, xml_threat_model_capability: XMLThreatModelImageAddToMessageCapability):
-#         self.xml_threat_model_capability = xml_threat_model_capability
-
-#     def call
-
-
 def setup_xml_threat_model_reviewer(llm_config, context, state):
+    teams_typing = TeamsTyping(context)
+    
     questioner_agent = AssistantAgent(name="Questioner")
-    cap = EvaluateSpecCapability(specs=specs)
-    cap.add_to_agent(questioner_agent)
+    evaluate_spec_capability = EvaluateSpecCapability(specs=specs)
+    evaluate_spec_capability.add_to_agent(questioner_agent)
 
     answerer_agent = AssistantAgent(
         name="Answerer",
@@ -120,6 +134,7 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
         max_width=400,
         set_message_to_second_last=True,
     ).add_to_agent(answerer_agent)
+    TypingCapability(context, teams_typing).add_to_agent(answerer_agent)
 
     def add_answer(
         spec_id: Annotated[int, "The spec id to answer"],
@@ -140,7 +155,7 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
             "The tag of the spec answer",
         ],
     ) -> Annotated[str, "The detailed answer to the spec question"]:
-        return cap.add_answer(
+        return evaluate_spec_capability.add_answer(
             SpecAnswer(
                 spec_id=spec_id,
                 detailed_answer=detailed_answer,
@@ -160,7 +175,7 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
 
     def summarize(self, recipient, summary_args):
         spec_answers: List[Tuple[Spec, SpecAnswer]] = []
-        for spec_id, spec_answer in cap.spec_index_to_answer.items():
+        for spec_id, spec_answer in evaluate_spec_capability.spec_index_to_answer.items():
             spec_question = next(filter(lambda x: x.id == spec_id, specs))
             spec_answers.append((spec_question, spec_answer))
         spec_answers = sorted(spec_answers, key=lambda x: x[1].spec_id)
@@ -170,6 +185,10 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
             for spec, spec_answer in spec_answers
         ]
         card = build_adaptive_card(containers)
+        
+        # Even though the capability handles stopping typing,
+        # we can make sure it is stopped here as well in case of any errors
+        teams_typing.stop()
 
         def set_default(obj):
             if isinstance(obj, set):

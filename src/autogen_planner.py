@@ -95,11 +95,16 @@ class AutoGenPlanner(Planner):
             if self.message_builder is not None
             else context.activity.text
         )
-        runtime_logging.start()
+        
+        if Config.ENABLE_RUNTIME_LOGGING:
+            runtime_logging.start()
+        
         chat_result = await user_proxy.a_initiate_chat(
             recipient=manager, message=incoming_message, clear_history=False
         )
-        runtime_logging.stop()
+        if Config.ENABLE_RUNTIME_LOGGING:
+            runtime_logging.stop()
+            
         chat_history = chat_result.chat_history[:]
         for chat in chat_history:
             if chat.get("content") == "":
