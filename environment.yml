@@ -1,28 +1,54 @@
 name: privacy-helper
 channels:
+  - anaconda
+  - conda-forge
   - defaults
 dependencies:
   - blas=1.0
   - bzip2=1.0.8
-  - ca-certificates=2024.7.2
+  - ca-certificates=2024.8.30
+  - cairo=1.16.0
+  - cfgv=3.3.1
+  - distlib=0.3.8
   - expat=2.6.2
+  - filelock=3.15.4
+  - fontconfig=2.14.1
+  - freetype=2.12.1
+  - gettext=0.21.0
+  - glib=2.78.4
+  - glib-tools=2.78.4
+  - icu=73.1
+  - identify=2.6.0
   - libcxx=14.0.6
   - libffi=3.4.4
   - libgfortran=5.0.0
   - libgfortran5=11.3.0
+  - libglib=2.78.4
+  - libiconv=1.16
   - libopenblas=0.3.21
+  - libpng=1.6.39
+  - libxml2=2.13.1
   - llvm-openmp=14.0.6
   - ncurses=6.4
-  - openssl=3.0.14
+  - nodeenv=1.9.1
+  - openssl=3.3.2
+  - pcre2=10.42
   - pip=24.2
+  - pixman=0.40.0
+  - platformdirs=4.2.2
+  - pre-commit=3.8.0
+  - pycparser=2.22
   - python=3.12.4
   - readline=8.2
   - ruff=0.3.5
   - sqlite=3.45.3
   - tk=8.6.14
   - tzdata=2024a
+  - ukkonen=1.0.1
+  - virtualenv=20.26.3
   - wheel=0.43.0
   - xz=5.4.6
+  - yaml=0.2.5
   - zlib=1.2.13
   - pip:
       - aiohttp==3.9.5
@@ -78,7 +104,6 @@ dependencies:
       - emoji==1.7.0
       - executing==2.0.1
       - fastapi==0.112.2
-      - filelock==3.15.4
       - flaml==2.2.0
       - flatbuffers==24.3.25
       - frozenlist==1.4.1
@@ -151,7 +176,6 @@ dependencies:
       - pathspec==0.12.1
       - pexpect==4.9.0
       - pillow==10.3.0
-      - platformdirs==4.2.2
       - pluggy==1.5.0
       - portalocker==2.10.1
       - posthog==3.5.2
@@ -164,7 +188,6 @@ dependencies:
       - pyasn1==0.6.0
       - pyasn1-modules==0.4.0
       - pyautogen==0.2.34
-      - pycparser==2.22
       - pydantic==2.8.2
       - pydantic-core==2.20.1
       - pygments==2.18.0
@@ -235,3 +258,4 @@ dependencies:
       - wrapt==1.16.0
       - yarl==1.9.4
       - zipp==3.20.1
+prefix: /Users/aamirjawaid/miniconda3/envs/privacy-helper

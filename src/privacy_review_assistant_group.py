@@ -62,12 +62,12 @@ class PrivacyReviewAssistantGroup:
         return group
 
     def setup_visualizer_assistant(
-        self, _context: TurnContext, state: AppTurnState, _user_agent: Agent
+        self, context: TurnContext, state: AppTurnState, _user_agent: Agent
     ) -> Agent:
         visualizer_assistant = AssistantAgent(
             name="Visualizer",
             description="An agent that visualizes the threat model.",
         )
-        visualizer_capability = ThreatModelImageVisualizerCapability(state=state)
+        visualizer_capability = ThreatModelImageVisualizerCapability(context=context, state=state)
         visualizer_capability.add_to_agent(visualizer_assistant)
         return visualizer_assistant

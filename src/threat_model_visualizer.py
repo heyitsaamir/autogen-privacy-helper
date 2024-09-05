@@ -26,10 +26,15 @@ type Hints_To_Send = Union[List[User_Friendly_Block_Types], Literal["all"]]
 
 
 class ThreatModelImageVisualizer:
-    def __init__(self, state: AppTurnState):
+    def __init__(self, context: TurnContext, state: AppTurnState):
         self.state = state
         self.img = None
         self.key_label_map: Optional[Key_Label_Map] = None
+        if not context.activity.conversation:
+            print("missing activity.conversation when creating ThreatModelImageVisualizer")
+            self.threat_model_name = "default_threat_model"
+        else:
+            self.threat_model_name = f"threat_model_{context.activity.conversation.id}"
 
     def extract_image_from_state(self, build_for_ai_context: bool):
         img = None
@@ -43,10 +48,10 @@ class ThreatModelImageVisualizer:
                 svg_str = xml_file.content.decode("utf-8")
                 key_label_map = convert_svg_to_png(
                     svg_content=svg_str,
-                    out_file="threat_model",
+                    out_file=self.threat_model_name,
                     build_for_ai_context=build_for_ai_context,
                 )
-                img = Image.open("threat_model.png")
+                img = Image.open(f"{self.threat_model_name}.png")
         self.img = img
         self.key_label_map = key_label_map
 
@@ -79,9 +84,9 @@ class ThreatModelImageVisualizer:
 
 
 class ThreatModelImageVisualizerCapability(AgentCapability, ThreatModelImageVisualizer):
-    def __init__(self, state: AppTurnState):
+    def __init__(self, context: TurnContext, state: AppTurnState):
         super().__init__()
-        super(AgentCapability, self).__init__(state)
+        super(AgentCapability, self).__init__(context, state)
 
     def add_to_agent(self, agent: AssistantAgent):
         agent.register_reply(
