@@ -118,6 +118,7 @@ class XMLThreatModelImageAddToMessageCapability(
                     )
                 )
 
+
 folder = os.path.dirname(os.path.abspath(__file__))
 specs = load_specs_from_json(f"{folder}/specs.json")
 
