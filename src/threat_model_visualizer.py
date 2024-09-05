@@ -31,7 +31,9 @@ class ThreatModelImageVisualizer:
         self.img = None
         self.key_label_map: Optional[Key_Label_Map] = None
         if not context.activity.conversation:
-            print("missing activity.conversation when creating ThreatModelImageVisualizer")
+            print(
+                "missing activity.conversation when creating ThreatModelImageVisualizer"
+            )
             self.threat_model_name = "default_threat_model"
         else:
             self.threat_model_name = f"threat_model_{context.activity.conversation.id}"

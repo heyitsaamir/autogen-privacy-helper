@@ -68,6 +68,8 @@ class PrivacyReviewAssistantGroup:
             name="Visualizer",
             description="An agent that visualizes the threat model.",
         )
-        visualizer_capability = ThreatModelImageVisualizerCapability(context=context, state=state)
+        visualizer_capability = ThreatModelImageVisualizerCapability(
+            context=context, state=state
+        )
         visualizer_capability.add_to_agent(visualizer_assistant)
         return visualizer_assistant

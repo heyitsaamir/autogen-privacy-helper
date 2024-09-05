@@ -39,7 +39,12 @@ class XMLThreatModelImageAddToMessageCapability(
     AgentCapability, ThreatModelDataExtractor
 ):
     def __init__(
-        self, context: TurnContext, say_when_evaluating: bool, max_width: int, set_message_to_second_last = False, **kwargs
+        self,
+        context: TurnContext,
+        say_when_evaluating: bool,
+        max_width: int,
+        set_message_to_second_last=False,
+        **kwargs,
     ):
         self.say_when_evaluating = say_when_evaluating
         self.context = context
@@ -78,7 +83,10 @@ class XMLThreatModelImageAddToMessageCapability(
 --------
 4. The list of boundary names is {self.boundary_names}."""
             # make this the second last message
-            messages.insert(-1 if self.set_message_to_second_last else len(messages), {"content": content, "role": "user"})
+            messages.insert(
+                -1 if self.set_message_to_second_last else len(messages),
+                {"content": content, "role": "user"},
+            )
             # messages.append({"content": content, "role": "user"})
         else:
             messages = messages.copy()

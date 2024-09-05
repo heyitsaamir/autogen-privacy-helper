@@ -21,7 +21,8 @@ tag_with_headers = {"green": "✅", "red": "❌", "yellow": "⚠️"}
 class SpecAnswer(BaseModel):
     spec_id: Annotated[int, "The spec id to answer"]
     detailed_answer: Annotated[
-        str, "Does the threat model meet the spec criteria? Why or why not? Be helpful and specific."
+        str,
+        "Does the threat model meet the spec criteria? Why or why not? Be helpful and specific.",
     ]
     steps_to_improve: Annotated[
         str,
@@ -67,16 +68,18 @@ class EvaluateSpecCapability(AgentCapability):
         self.spec_index_to_answer[answer.spec_id] = answer
         return answer.detailed_answer
 
+
 class ClearHistoryCapability(AgentCapability):
     def __init__(self):
         super().__init__()
 
     def add_to_agent(self, agent: ConversableAgent):
         agent.register_hook("process_all_messages_before_reply", self._clear_history)
-        
+
     def _clear_history(self, messages):
         return [messages[-1]]
-    
+
+
 # class XMLPreprocessCapability():
 #     # takes a xml threat model capability
 #     # the main goal is to preprocess it
@@ -84,8 +87,9 @@ class ClearHistoryCapability(AgentCapability):
 #     # then once it's done, it can update the capability with updated data
 #     def __init__(self, xml_threat_model_capability: XMLThreatModelImageAddToMessageCapability):
 #         self.xml_threat_model_capability = xml_threat_model_capability
-        
+
 #     def call
+
 
 def setup_xml_threat_model_reviewer(llm_config, context, state):
     questioner_agent = AssistantAgent(name="Questioner")
@@ -100,17 +104,26 @@ The threat model indicates the flow of data in a bigger system. You do not have 
 Answer the questions as clearly and concisely as possible. Always use add_answer to add an answer to a spec question.
             """,
         description="A answerer agent that can exclusively answer questions based on a threat model picture.",
-        llm_config={"config_list": [{**llm_config, "tool_choice": "required"}], "timeout": 60, "temperature": 0},
+        llm_config={
+            "config_list": [{**llm_config, "tool_choice": "required"}],
+            "timeout": 60,
+            "temperature": 0,
+        },
     )
     ClearHistoryCapability().add_to_agent(answerer_agent)
     XMLThreatModelImageAddToMessageCapability(
-        context, say_when_evaluating=True, state=state, max_width=400, set_message_to_second_last=True
+        context,
+        say_when_evaluating=True,
+        state=state,
+        max_width=400,
+        set_message_to_second_last=True,
     ).add_to_agent(answerer_agent)
 
     def add_answer(
         spec_id: Annotated[int, "The spec id to answer"],
         detailed_answer: Annotated[
-            str, "Does the threat model meet the spec criteria? Why or why not? Be helpful and specific."
+            str,
+            "Does the threat model meet the spec criteria? Why or why not? Be helpful and specific.",
         ],
         steps_to_improve: Annotated[
             str,
@@ -123,9 +136,16 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
                 Annotated[Literal["yellow"], "Criteria is met but can be improved"],
             ],
             "The tag of the spec answer",
-        ]
+        ],
     ) -> Annotated[str, "The detailed answer to the spec question"]:
-        return cap.add_answer(SpecAnswer(spec_id=spec_id, detailed_answer=detailed_answer, steps_to_improve=steps_to_improve, tag=tag))
+        return cap.add_answer(
+            SpecAnswer(
+                spec_id=spec_id,
+                detailed_answer=detailed_answer,
+                steps_to_improve=steps_to_improve,
+                tag=tag,
+            )
+        )
 
     ImmediateExecutorCapability().add_to_agent(
         answerer_agent, add_answer, description="Add an answer to a spec question"
