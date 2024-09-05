@@ -39,13 +39,13 @@ class XMLThreatModelImageAddToMessageCapability(
     AgentCapability, ThreatModelDataExtractor
 ):
     def __init__(
-        self, context: TurnContext, say_when_evaluating: bool, max_width: int, **kwargs
+        self, context: TurnContext, say_when_evaluating: bool, max_width: int, set_message_to_second_last = False, **kwargs
     ):
         self.say_when_evaluating = say_when_evaluating
         self.context = context
         self.max_width = max_width
         self.img = None
-        self.set_message_to_second_last = kwargs.get("set_message_to_second_last", False)
+        self.set_message_to_second_last = set_message_to_second_last
 
         super().__init__()
         super(AgentCapability, self).__init__(context=context, **kwargs)

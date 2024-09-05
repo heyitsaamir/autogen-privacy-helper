@@ -12,7 +12,6 @@ specs = load_specs_from_json("src/specs.json")
 
 def build_instruction(spec: Spec):
     return f"""Now, based on the given details of the spec model, see if it fulfills this criteria\nSpec id {spec.id}\n{spec.instructions_to_solve}
-If the criteria is not met, then {spec.improvement_hints}
 """
 
 
@@ -77,6 +76,16 @@ class ClearHistoryCapability(AgentCapability):
         
     def _clear_history(self, messages):
         return [messages[-1]]
+    
+# class XMLPreprocessCapability():
+#     # takes a xml threat model capability
+#     # the main goal is to preprocess it
+#     # so when preprocess is called, it extracts the data
+#     # then once it's done, it can update the capability with updated data
+#     def __init__(self, xml_threat_model_capability: XMLThreatModelImageAddToMessageCapability):
+#         self.xml_threat_model_capability = xml_threat_model_capability
+        
+#     def call
 
 def setup_xml_threat_model_reviewer(llm_config, context, state):
     questioner_agent = AssistantAgent(name="Questioner")
