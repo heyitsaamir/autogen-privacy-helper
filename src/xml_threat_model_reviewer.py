@@ -1,3 +1,4 @@
+import os
 from PIL import Image
 from botbuilder.schema import Activity, ActivityTypes, Attachment
 from autogen.agentchat import AssistantAgent
@@ -117,8 +118,8 @@ class XMLThreatModelImageAddToMessageCapability(
                     )
                 )
 
-
-specs = load_specs_from_json("src/specs.json")
+folder = os.path.dirname(os.path.abspath(__file__))
+specs = load_specs_from_json(f"{folder}/specs.json")
 
 
 def setup_xml_threat_model_reviewer(

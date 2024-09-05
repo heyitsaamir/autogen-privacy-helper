@@ -1,3 +1,4 @@
+import os
 import json
 from typing import List, Annotated, Dict, Tuple, Union, Literal
 from autogen import AssistantAgent, ConversableAgent, Agent
@@ -7,7 +8,8 @@ from pydantic import BaseModel
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
 from Spec import Spec, load_specs_from_json
 
-specs = load_specs_from_json("src/specs.json")
+folder = os.path.dirname(os.path.abspath(__file__))
+specs = load_specs_from_json(f"{folder}/specs.json")
 
 
 def build_instruction(spec: Spec):
