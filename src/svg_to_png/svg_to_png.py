@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 import drawsvg as draw
 from .lib.ThreatModel import ThreatModel
 from .lib.utils import get_bbox
@@ -15,7 +15,7 @@ def load_threat_model(
 def convert_svg_to_png(
     file: Optional[str] = None,
     svg_content: Optional[str] = None,
-    out_file="result",
+    out_file: Union[str, None] = None,
     build_for_ai_context: bool = False,
 ):
     threat_model = ThreatModel(file, svg_content, build_for_ai_context)
@@ -34,8 +34,9 @@ def convert_svg_to_png(
     width, height = bounding_box.get_size()
     d.set_render_size(width, height)
     d.view_box = (bounding_box.xmin, bounding_box.ymin) + (width, height)
-    file_name = out_file
-    d.save_svg(f"{file_name}.svg")
-    d.save_png(f"{file_name}.png")
+    if out_file:
+        file_name = out_file
+        d.save_svg(f"{file_name}.svg")
+        d.save_png(f"{file_name}.png")
 
     return threat_model.key_label_map

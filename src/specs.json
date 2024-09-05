@@ -2,50 +2,57 @@
     {
         "id": 1,
         "spec": "All nodes should be inside a trust boundary",
-        "instructions_to_solve": "A node is considered to be inside a trust boundary if has_boundary is True.",
+        "instructions_to_solve": "A node is considered to be inside a trust boundary if has_boundary is True. All nodes should have has_boundary set to True if they are inside a trust boundary. Do not use the term has_boundary in the response.",
         "improvement_hints": "Indicate which node is not inside a trust boundary.",
         "hints_to_send": ["Trust Boundary", "Node"]
     },
     {
         "id": 2,
         "spec": "All labels should be numbered with sequence indicators",
-        "instructions_to_solve": "The labels themselves may not be in sequential order, but the numbers in the sequence should indicate some sort of order. For example, if the labels are first \"1. FlowA\" and second \"3. FlowB\" and third, \"2. FlowC\", this is valid, because all numbers between 1 and 3 are there, but if it were \"1. FlowA\" and second \"4. FlowB\" and third, \"2. FlowC\" then this would be invalid, because 3 is missing. It's also possible that sequence indicators can have sub-sequences.\nHere are a number of valid flows:\n1, 2, 3, 4 - All numbers are present (no subsequences exist)\n1, 2, 2b, 3a, 4 - All numbers are present (subsequences exist, and are in order. 2a is not explicitly there but is assumed to be 2)\n1, 1a, 1b, 2, 2a, 3 - All numbers are present (subsequences exist, and are in order)\nHere are a number of invalid flows:\n1, 2, 4 - 3 is missing\n1, 2b, 3 - 2a is missing\n1, 2, 3, 3, 4 - There are multiple 3s\n1, 2a, 2c, 3 - 2b is missing",
+        "instructions_to_solve": "All labels must have a sequence indicator at the beginning. These could be numbers like 1, 2, 3, 4. Numbers could also include letters like 1a, 1b, 1c, 2a, 2b, 2c, etc.",
         "improvement_hints": "Indicate which labels do not have sequential indicators",
         "hints_to_send": ["Node", "Data Flow"]
     },
     {
         "id": 3,
+        "spec": "All labels have sequences that make logical sense",
+        "instructions_to_solve": "The labels themselves may not be in sequential order, but the numbers in the sequence should indicate some sort of order. \nHere are some valid examples:\n1, 2, 3, 4 - All numbers are present\n1, 1a, 1b, 2a, 2b, 3 - Numbers and subsequences all exist and are in the correct order\nHere are some invalid examples:\n1, 2, 4 - here 3 is missing\n1, 2, 2b, 3 - Here the sequence 2 has subsequences (2b), but not all sequence indicators for 2 have subsequences (i.e. it's missing 2a)\n1, 2b, 3 - here 2a is missing\n1, 2, 3, 3, 4 - There are duplicate 3s\n1, 2a, 2c, 3 - 2b is missing.",
+        "improvement_hints": "Indicate which labels do not have sequential indicators",
+        "hints_to_send": ["Node", "Data Flow"]
+    },
+    {
+        "id": 4,
         "spec": "All nodes and labels should be tagged with [NEW] or [EXISTING]",
         "instructions_to_solve": "All nodes and labels should be tagged with [NEW] or [EXISTING] to denote which part of the DFD is to be reviewed.",
         "improvement_hints": "Indicate which nodes or labels do not have [NEW] or [EXISTING]",
         "hints_to_send": ["Node", "Data Flow"]
     },
     {
-        "id": 4,
+        "id": 5,
         "spec": "Each node should have a request and response flow",
-        "instructions_to_solve": "Validate a request and response for each node and that there is a label. If in the list of nodes with labels between them for two nodes either hasNode2ToNode1Curve or hasNode1ToNode2Curve are not true, say that there aren't curves in both directions between these nodes. \nDo not use strings like hasNode2ToNode1Curve in the response.",
+        "instructions_to_solve": "Validate a request and response for each node. If in the list of nodes with labels between them for two nodes both hasNode2ToNode1Curve and hasNode1ToNode2Curve are not True, say that there aren't curves in both directions between these nodes.\nDo not use strings like hasNode2ToNode1Curve in the response.",
         "improvement_hints": "Indicate which nodes do not have both a request and response flow",
         "hints_to_send": ["Node", "Data Flow"]
     },
     {
-        "id": 5,
+        "id": 6,
         "spec": "Storage nodes should have retention tags",
-        "instructions_to_solve": "Each storage node can have a tag like 30D that represents its retention. If there are no storage nodes, then this criteria does not apply. If storage nodes exist and do not have this tag issue a warning but this should not be a validation failure. If there is a tag that appears like it's a duration it should be in compact duration format. Only for [NEW] nodes",
+        "instructions_to_solve": "Each storage node can have a tag like 30D that represents its retention. If there are no storage nodes, then this criteria does not apply and the threat model passes this criteria. If storage nodes exist and do not have this tag issue a warning but this should not be a validation failure. If there is a tag that appears like it's a duration it should be in compact duration format. Only for [NEW] nodes",
         "improvement_hints": "Indicate which storage nodes do not have retention tags",
         "hints_to_send": ["Node", "Data Flow"]
     },
     {
-        "id": 6,
+        "id": 7,
         "spec": "Each label tag the type of data it passes",
         "instructions_to_solve": "Each label should have a string representing the type of data it passes. Therefore it should include one of the following: AC, CC, EUII, OII, SM PND, EUPI, SD, FB, AD PPD MSD.",
         "improvement_hints": "Indicate which labels do not tag the type of data it passes",
         "hints_to_send": ["Node", "Data Flow"]
     },
     {
-        "id": 7,
+        "id": 8,
         "spec": "No JSON in labels",
-        "instructions_to_solve": "There should not be any JSON in any of the labels. Only tags should be in the labels.",
-        "improvement_hints": "Indicate which labels has JSON in the content",
+        "instructions_to_solve": "There should not be any JSON in any of the labels. It can contain text, but not formatted as JSON.",
+        "improvement_hints": "Indicate which labels has JSON in the content.",
         "hints_to_send": ["Node", "Data Flow"]
     }
 ]

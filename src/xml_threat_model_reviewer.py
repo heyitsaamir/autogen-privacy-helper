@@ -18,11 +18,11 @@ from state import AppTurnState
 
 
 class ThreatModelDataExtractor(ThreatModelImageVisualizer):
-    def __init__(self, state: AppTurnState):
+    def __init__(self, context: TurnContext, state: AppTurnState):
         self.label_names = None
         self.no_boundary_nodes = None
         self.state = state
-        super(ThreatModelImageVisualizer, self).__init__()
+        super().__init__(context=context, state=state)
 
     def extract_data_from_state(self):
         xml_file = get_threat_model_xml_file(self.state)
@@ -39,15 +39,21 @@ class XMLThreatModelImageAddToMessageCapability(
     AgentCapability, ThreatModelDataExtractor
 ):
     def __init__(
-        self, context: TurnContext, say_when_evaluating: bool, max_width: int, **kwargs
+        self,
+        context: TurnContext,
+        say_when_evaluating: bool,
+        max_width: int,
+        set_message_to_second_last=False,
+        **kwargs,
     ):
         self.say_when_evaluating = say_when_evaluating
         self.context = context
         self.max_width = max_width
         self.img = None
+        self.set_message_to_second_last = set_message_to_second_last
 
         super().__init__()
-        super(AgentCapability, self).__init__(**kwargs)
+        super(AgentCapability, self).__init__(context=context, **kwargs)
 
     def add_to_agent(self, agent: ConversableAgent):
         agent.register_hook(
@@ -68,11 +74,20 @@ class XMLThreatModelImageAddToMessageCapability(
         if self.label_names is not None or self.node_data is not None:
             messages = messages.copy()
             content = f"""The file details for the file you need to validate are: 
-            1. The data for the nodes is: {self.node_data}.
-            2. The list of label names is {self.label_names}.
-            3. The list of nodes with labels between them is {self.node_label_pair_data}.
-            4. The list of boundary names is {self.boundary_names}."""
-            messages.append({"content": content, "role": "user"})
+--------
+1. The data for the nodes is: {self.node_data}.
+--------
+2. The list of label names is {self.label_names}.
+--------
+3. The list of nodes with labels between them is {self.node_label_pair_data}.
+--------
+4. The list of boundary names is {self.boundary_names}."""
+            # make this the second last message
+            messages.insert(
+                -1 if self.set_message_to_second_last else len(messages),
+                {"content": content, "role": "user"},
+            )
+            # messages.append({"content": content, "role": "user"})
         else:
             messages = messages.copy()
             messages.append({"content": "No threat model exists.", "role": "user"})

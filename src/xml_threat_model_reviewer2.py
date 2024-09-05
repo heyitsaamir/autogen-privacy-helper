@@ -11,8 +11,7 @@ specs = load_specs_from_json("src/specs.json")
 
 
 def build_instruction(spec: Spec):
-    return f"""Spec id {spec.id} - {spec.spec}\n{spec.instructions_to_solve}
-If the criteria is not met, then {spec.improvement_hints}
+    return f"""Now, based on the given details of the spec model, see if it fulfills this criteria\nSpec id {spec.id}\n{spec.instructions_to_solve}
 """
 
 
@@ -22,7 +21,8 @@ tag_with_headers = {"green": "✅", "red": "❌", "yellow": "⚠️"}
 class SpecAnswer(BaseModel):
     spec_id: Annotated[int, "The spec id to answer"]
     detailed_answer: Annotated[
-        str, "Does the threat model meet the spec criteria? Why or why not?"
+        str,
+        "Does the threat model meet the spec criteria? Why or why not? Be helpful and specific.",
     ]
     steps_to_improve: Annotated[
         str,
@@ -54,7 +54,7 @@ class EvaluateSpecCapability(AgentCapability):
 
         agent._is_termination_msg = new_term_msg
 
-    def _send_question(self, self2, messages, sender, config):
+    async def _send_question(self, self2, messages, sender, config):
         if self.spec_index < len(self.specs):
             print(f"Sending question for spec {self.specs[self.spec_index].id}")
             message = f"{build_instruction(self.specs[self.spec_index])}"
@@ -67,6 +67,28 @@ class EvaluateSpecCapability(AgentCapability):
     ) -> Annotated[str, "The detailed answer to the spec question"]:
         self.spec_index_to_answer[answer.spec_id] = answer
         return answer.detailed_answer
+
+
+class ClearHistoryCapability(AgentCapability):
+    def __init__(self):
+        super().__init__()
+
+    def add_to_agent(self, agent: ConversableAgent):
+        agent.register_hook("process_all_messages_before_reply", self._clear_history)
+
+    def _clear_history(self, messages):
+        return [messages[-1]]
+
+
+# class XMLPreprocessCapability():
+#     # takes a xml threat model capability
+#     # the main goal is to preprocess it
+#     # so when preprocess is called, it extracts the data
+#     # then once it's done, it can update the capability with updated data
+#     def __init__(self, xml_threat_model_capability: XMLThreatModelImageAddToMessageCapability):
+#         self.xml_threat_model_capability = xml_threat_model_capability
+
+#     def call
 
 
 def setup_xml_threat_model_reviewer(llm_config, context, state):
@@ -82,16 +104,48 @@ The threat model indicates the flow of data in a bigger system. You do not have 
 Answer the questions as clearly and concisely as possible. Always use add_answer to add an answer to a spec question.
             """,
         description="A answerer agent that can exclusively answer questions based on a threat model picture.",
-        llm_config={"config_list": [llm_config], "timeout": 60, "temperature": 0},
+        llm_config={
+            "config_list": [{**llm_config, "tool_choice": "required"}],
+            "timeout": 60,
+            "temperature": 0,
+        },
     )
+    ClearHistoryCapability().add_to_agent(answerer_agent)
     XMLThreatModelImageAddToMessageCapability(
-        context, say_when_evaluating=True, state=state, max_width=400
+        context,
+        say_when_evaluating=True,
+        state=state,
+        max_width=400,
+        set_message_to_second_last=True,
     ).add_to_agent(answerer_agent)
 
     def add_answer(
-        answer: Annotated[SpecAnswer, "The answer to the spec question"],
+        spec_id: Annotated[int, "The spec id to answer"],
+        detailed_answer: Annotated[
+            str,
+            "Does the threat model meet the spec criteria? Why or why not? Be helpful and specific.",
+        ],
+        steps_to_improve: Annotated[
+            str,
+            "What are exact steps to improve the threat model to meet the spec criteria? Use 'None' if no steps to improve",
+        ],
+        tag: Annotated[
+            Union[
+                Annotated[Literal["green"], "Spec criteria is met"],
+                Annotated[Literal["red"], "Items needs to be fixed to meet criteria"],
+                Annotated[Literal["yellow"], "Criteria is met but can be improved"],
+            ],
+            "The tag of the spec answer",
+        ],
     ) -> Annotated[str, "The detailed answer to the spec question"]:
-        return cap.add_answer(answer)
+        return cap.add_answer(
+            SpecAnswer(
+                spec_id=spec_id,
+                detailed_answer=detailed_answer,
+                steps_to_improve=steps_to_improve,
+                tag=tag,
+            )
+        )
 
     ImmediateExecutorCapability().add_to_agent(
         answerer_agent, add_answer, description="Add an answer to a spec question"
@@ -141,6 +195,29 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
 
 
 def build_container_for_answer(spec: Spec, spec_answer: SpecAnswer):
+    answer_items = [
+        {
+            "type": "TextBlock",
+            "text": spec_answer.detailed_answer,
+            "wrap": True,
+        }
+    ]
+    if spec_answer.steps_to_improve != "None" and spec_answer.steps_to_improve:
+        answer_items.append(
+            {
+                "type": "TextBlock",
+                "text": "Steps to improve:",
+                "wrap": True,
+                "weight": "Bolder",
+            }
+        )
+        answer_items.append(
+            {
+                "type": "TextBlock",
+                "text": spec_answer.steps_to_improve,
+                "wrap": True,
+            }
+        )
     return {
         "type": "Container",
         "items": [
@@ -167,13 +244,7 @@ def build_container_for_answer(spec: Spec, spec_answer: SpecAnswer):
                     {
                         "type": "Column",
                         "width": "stretch",
-                        "items": [
-                            {
-                                "type": "TextBlock",
-                                "text": spec_answer.detailed_answer,
-                                "wrap": True,
-                            }
-                        ],
+                        "items": answer_items,
                     },
                 ],
             },
