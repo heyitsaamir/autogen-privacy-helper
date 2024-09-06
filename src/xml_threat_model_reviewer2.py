@@ -4,10 +4,9 @@ import json
 from typing import List, Annotated, Dict, Tuple, Union, Literal
 from autogen import AssistantAgent, ConversableAgent, Agent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
-from autogen_utils import ImmediateExecutorCapability
+from autogen_utils import ImmediateExecutorCapability, TypingCapability
 from pydantic import BaseModel
 from teams.typing import Typing as TeamsTyping
-from botbuilder.core import TurnContext
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
 from Spec import Spec, load_specs_from_json
 
@@ -41,25 +40,6 @@ class SpecAnswer(BaseModel):
         ],
         "The tag of the spec answer",
     ]
-
-
-class TypingCapability(AgentCapability):
-    def __init__(self, context: TurnContext, typing: TeamsTyping):
-        self.typing = typing
-        self.context = context
-        super().__init__()
-
-    def add_to_agent(self, agent: ConversableAgent):
-        agent.register_reply([Agent, None], self._send_typing)
-        agent.register_hook("process_all_messages_before_reply", self._stop_typing)
-
-    async def _send_typing(self, self2, messages, sender, config):
-        await self.typing.start(self.context)
-        return [False, None]
-
-    def _stop_typing(self, messages):
-        self.typing.stop()
-        return messages
 
 
 class EvaluateSpecCapability(AgentCapability):
@@ -107,7 +87,7 @@ class ClearHistoryCapability(AgentCapability):
 
 
 def setup_xml_threat_model_reviewer(llm_config, context, state):
-    teams_typing = TeamsTyping(context)
+    teams_typing = TeamsTyping()
 
     questioner_agent = AssistantAgent(name="Questioner")
     evaluate_spec_capability = EvaluateSpecCapability(specs=specs)
