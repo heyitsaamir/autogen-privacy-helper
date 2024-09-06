@@ -32,7 +32,7 @@ class Config:
     )
     AZURE_LLM_MODEL = os.environ.get("AZURE_LLM_MODEL")
     AZURE_LLM_BASE_URL = os.environ.get("AZURE_LLM_BASE_URL")
-    AZURE_LLM_MODEL_VERSION = os.environ.get("AZURE_LLM_MODEL_VERSION")
+    AAZURE_LLM_API_VERSION = os.environ.get("AAZURE_LLM_API_VERSION")
     COSMOS_DB_URI = os.environ.get("COSMOS_DB_URI")
     COSMOS_DB_DATABASE_ID = os.environ.get("COSMOS_DB_DATABASE_ID")
     COSMOS_DB_CONTAINER_ID = os.environ.get("COSMOS_DB_CONTAINER_ID")
@@ -64,7 +64,7 @@ class Config:
             self.AZURE_LLM_MANAGED_IDENTITY_CLIENT_ID
             and self.AZURE_LLM_MODEL
             and self.AZURE_LLM_BASE_URL
-            and self.AZURE_LLM_MODEL_VERSION
+            and self.AAZURE_LLM_API_VERSION
         ):
             print("Using Azure OpenAI API with managed identity")
             import azure.identity
@@ -73,7 +73,7 @@ class Config:
                 "model": self.AZURE_LLM_MODEL,
                 "base_url": self.AZURE_LLM_BASE_URL,
                 "api_type": "azure",
-                "api_version": self.AZURE_LLM_MODEL_VERSION,
+                "api_version": self.AAZURE_LLM_API_VERSION,
                 "cache_seed": None,
                 "azure_ad_token_provider": azure.identity.get_bearer_token_provider(
                     azure.identity.DefaultAzureCredential(
@@ -85,7 +85,7 @@ class Config:
             }
         else:
             raise ValueError(
-                "Neither OPENAI_KEY nor AZURE_OPENAI_KEY nor azure managed identity (AZURE_LLM_MANAGED_IDENTITY_CLIENT_ID, AZURE_LLM_MODEL, AZURE_LLM_BASE_URL, AZURE_LLM_MODEL_VERSION) environment variables are set."
+                "Neither OPENAI_KEY nor AZURE_OPENAI_KEY nor azure managed identity (AZURE_LLM_MANAGED_IDENTITY_CLIENT_ID, AZURE_LLM_MODEL, AZURE_LLM_BASE_URL, AAZURE_LLM_API_VERSION) environment variables are set."
             )
         return autogen_llm_config
 
