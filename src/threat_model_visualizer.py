@@ -1,7 +1,6 @@
 import io
 from typing import Union, Optional, List, Literal
 from PIL import Image
-from botbuilder.schema import Activity, ActivityTypes, Attachment
 from autogen.agentchat import AssistantAgent, Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import (
     MultimodalConversableAgent,
@@ -10,9 +9,7 @@ from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapabil
 from autogen.agentchat.contrib.img_utils import pil_to_data_uri
 
 from teams.input_file import InputFile
-from botbuilder.core import TurnContext
 
-from state import AppTurnState
 from svg_to_png.svg_to_png import convert_svg_to_png
 from svg_to_png.lib.ThreatModel import Key_Label_Map, User_Friendly_Block_Types
 from asyncio import ensure_future
@@ -22,32 +19,34 @@ from threat_model_file_utils import (
     get_threat_model_xml_file,
 )
 
+from conversation_state import ConversationState, ChatContext
+
 type Hints_To_Send = Union[List[User_Friendly_Block_Types], Literal["all"]]
 
 
 class ThreatModelImageVisualizer:
-    def __init__(self, context: TurnContext, state: AppTurnState):
+    def __init__(self, context: ChatContext, state: ConversationState):
         self.state = state
         self.img = None
         self.key_label_map: Optional[Key_Label_Map] = None
-        if not context.activity.conversation:
+        if not context.has_conversation_id():
             print(
                 "missing activity.conversation when creating ThreatModelImageVisualizer"
             )
             self.threat_model_name = "default_threat_model"
         else:
-            self.threat_model_name = f"threat_model_{context.activity.conversation.id}"
+            self.threat_model_name = f"threat_model_{context.get_conversation_id()}"
 
     def extract_image_from_state(self, build_for_ai_context: bool):
         img = None
         key_label_map: Optional[Key_Label_Map] = None
         threat_model_image = get_threat_model_image_file(self.state)
         if threat_model_image:
-            img = Image.open(io.BytesIO(threat_model_image.content))
+            img = Image.open(io.BytesIO(threat_model_image))
         else:
             xml_file = get_threat_model_xml_file(self.state)
             if xml_file:
-                svg_str = xml_file.content.decode("utf-8")
+                svg_str = xml_file.decode("utf-8")
                 key_label_map = convert_svg_to_png(
                     svg_content=svg_str,
                     out_file=self.threat_model_name,
@@ -57,9 +56,9 @@ class ThreatModelImageVisualizer:
         self.img = img
         self.key_label_map = key_label_map
 
-    def _get_image(self, input_file: Union[InputFile, str]):
+    def _get_image(self, input_file: bytes):
         img = Image.open(
-            io.BytesIO(input_file.content)
+            io.BytesIO(input_file)
             if isinstance(input_file, InputFile)
             else input_file
         )
@@ -86,7 +85,7 @@ class ThreatModelImageVisualizer:
 
 
 class ThreatModelImageVisualizerCapability(AgentCapability, ThreatModelImageVisualizer):
-    def __init__(self, context: TurnContext, state: AppTurnState):
+    def __init__(self, context: ChatContext, state: ConversationState):
         super().__init__()
         super(AgentCapability, self).__init__(context, state)
 
@@ -116,7 +115,7 @@ class ThreatModelImageAddToMessageCapability(
     AgentCapability, ThreatModelImageVisualizer
 ):
     def __init__(
-        self, context: TurnContext, say_when_evaluating: bool, max_width: int, **kwargs
+        self, context: ChatContext, say_when_evaluating: bool, max_width: int, **kwargs
     ):
         self.say_when_evaluating = say_when_evaluating
         self.context = context
@@ -176,15 +175,4 @@ class ThreatModelImageAddToMessageCapability(
         if self.say_when_evaluating:
             jpeg = self.convert_to_jpeg_if_needed(img)
             if jpeg:
-                await self.context.send_activity(
-                    Activity(
-                        type=ActivityTypes.message,
-                        text="Here is the threat model we are evaluating",
-                        attachments=[
-                            Attachment(
-                                content_type="image/jpeg",
-                                content_url=pil_to_data_uri(jpeg),
-                            )
-                        ],
-                    )
-                )
+                await self.context.add_content("Here is the threat model we are evaluating", "image/jpeg", pil_to_data_uri(jpeg))

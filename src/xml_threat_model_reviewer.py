@@ -1,12 +1,9 @@
 import os
 from PIL import Image
-from botbuilder.schema import Activity, ActivityTypes, Attachment
 from autogen.agentchat import AssistantAgent
 from autogen.agentchat.contrib.multimodal_conversable_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.img_utils import pil_to_data_uri
-
-from botbuilder.core import TurnContext
 
 from Spec import load_specs_from_json
 from svg_to_png.svg_to_png import load_threat_model
@@ -15,11 +12,11 @@ from asyncio import ensure_future
 from threat_model_file_utils import get_threat_model_xml_file
 from threat_model_visualizer import ThreatModelImageVisualizer
 
-from state import AppTurnState
+from conversation_state import ConversationState, ChatContext
 
 
 class ThreatModelDataExtractor(ThreatModelImageVisualizer):
-    def __init__(self, context: TurnContext, state: AppTurnState):
+    def __init__(self, context: ChatContext, state: ConversationState):
         self.label_names = None
         self.no_boundary_nodes = None
         self.state = state
@@ -28,7 +25,7 @@ class ThreatModelDataExtractor(ThreatModelImageVisualizer):
     def extract_data_from_state(self):
         xml_file = get_threat_model_xml_file(self.state)
         if xml_file:
-            svg_str = xml_file.content.decode("utf-8")
+            svg_str = xml_file.decode("utf-8")
             threat_model = load_threat_model(svg_content=svg_str)
             self.label_names = threat_model.get_label_names()
             self.node_data = threat_model.get_node_data()
@@ -41,7 +38,7 @@ class XMLThreatModelImageAddToMessageCapability(
 ):
     def __init__(
         self,
-        context: TurnContext,
+        context: ChatContext,
         say_when_evaluating: bool,
         max_width: int,
         set_message_to_second_last=False,
@@ -105,18 +102,10 @@ class XMLThreatModelImageAddToMessageCapability(
         if self.say_when_evaluating:
             jpeg = self.convert_to_jpeg_if_needed(img)
             if jpeg:
-                await self.context.send_activity(
-                    Activity(
-                        type=ActivityTypes.message,
-                        text="Here is the threat model we are evaluating",
-                        attachments=[
-                            Attachment(
-                                content_type="image/jpeg",
-                                content_url=pil_to_data_uri(jpeg),
-                            )
-                        ],
+                await self.context.add_content("Here is the threat model we are evaluating",
+                        "image/jpeg",
+                        pil_to_data_uri(jpeg)
                     )
-                )
 
 
 folder = os.path.dirname(os.path.abspath(__file__))
@@ -125,8 +114,8 @@ specs = load_specs_from_json(f"{folder}/specs.json")
 
 def setup_xml_threat_model_reviewer(
     llm_config,
-    context: TurnContext,
-    state: AppTurnState,
+    context: ChatContext,
+    state: ConversationState,
     threat_model_spec: str = """
 1. All nodes should be inside a boundary. Are there any nodes not in a boundary? To determine if a node is within a boundary in the node data for a node, has_boundary should be true. Do not tell the user of the has_boundary flag, however, just whether a node is not in a boundary.
 2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you

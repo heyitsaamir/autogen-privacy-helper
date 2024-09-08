@@ -6,8 +6,6 @@ from autogen import AssistantAgent, ConversableAgent, Agent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen_utils import ImmediateExecutorCapability
 from pydantic import BaseModel
-from teams.typing import Typing as TeamsTyping
-from botbuilder.core import TurnContext
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
 from Spec import Spec, load_specs_from_json
 
@@ -41,26 +39,6 @@ class SpecAnswer(BaseModel):
         ],
         "The tag of the spec answer",
     ]
-
-
-class TypingCapability(AgentCapability):
-    def __init__(self, context: TurnContext, typing: TeamsTyping):
-        self.typing = typing
-        self.context = context
-        super().__init__()
-
-    def add_to_agent(self, agent: ConversableAgent):
-        agent.register_reply([Agent, None], self._send_typing)
-        agent.register_hook("process_all_messages_before_reply", self._stop_typing)
-
-    async def _send_typing(self, self2, messages, sender, config):
-        await self.typing.start(self.context)
-        return [False, None]
-
-    def _stop_typing(self, messages):
-        self.typing.stop()
-        return messages
-
 
 class EvaluateSpecCapability(AgentCapability):
     def __init__(self, specs: List[Spec]):
@@ -106,8 +84,7 @@ class ClearHistoryCapability(AgentCapability):
         return [messages[-1]]
 
 
-def setup_xml_threat_model_reviewer(llm_config, context, state):
-    teams_typing = TeamsTyping(context)
+def setup_xml_threat_model_reviewer(llm_config, context, state, typing_capability):
 
     questioner_agent = AssistantAgent(name="Questioner")
     evaluate_spec_capability = EvaluateSpecCapability(specs=specs)
@@ -135,7 +112,8 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
         max_width=400,
         set_message_to_second_last=True,
     ).add_to_agent(answerer_agent)
-    TypingCapability(context, teams_typing).add_to_agent(answerer_agent)
+    if typing_capability is not None:
+        typing_capability.add_to_agent(answerer_agent)
 
     def add_answer(
         spec_id: Annotated[int, "The spec id to answer"],
@@ -192,7 +170,8 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
 
         # Even though the capability handles stopping typing,
         # we can make sure it is stopped here as well in case of any errors
-        teams_typing.stop()
+        if typing_capability is not None:
+            typing_capability.typing.stop()
 
         def set_default(obj):
             if isinstance(obj, set):

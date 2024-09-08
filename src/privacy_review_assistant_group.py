@@ -1,10 +1,9 @@
 from autogen import AssistantAgent, GroupChat, Agent
-from botbuilder.core import TurnContext
 
-from state import AppTurnState
 from rag_agents import setup_rag_assistant
 from visualizer_agent import setup_visualizer_agent
 from threat_model_visualizer import ThreatModelImageVisualizerCapability
+from typing import Optional
 from xml_threat_model_reviewer import (
     setup_xml_threat_model_reviewer as setup_xml_threat_model_reviewer_single_prompt,
 )
@@ -12,17 +11,17 @@ from xml_threat_model_reviewer2 import (
     setup_xml_threat_model_reviewer as setup_xml_threat_model_reviewer_multi_prompt,
 )
 
+from conversation_state import ConversationState, ChatContext
+from autogen_utils import StopableAgentCapability
 
 class PrivacyReviewAssistantGroup:
     def __init__(self, llm_config):
         self.llm_config = llm_config
 
     def group_chat_builder(
-        self, context: TurnContext, state: AppTurnState, user_agent: Agent
+        self, context: ChatContext, state: ConversationState, user_agent: Agent, typing_capability: Optional[StopableAgentCapability] = None
     ) -> GroupChat:
-        threat_model_evaluator_type = state.conversation.get(
-            "threat_model_evaluator", "xml_multi_prompt"
-        )
+        threat_model_evaluator_type = state.get_threat_model_evaluator_type()
         rag_assistant = setup_rag_assistant(self.llm_config)
         if threat_model_evaluator_type == "xml_single_prompt":
             threat_modeling_assistant = setup_xml_threat_model_reviewer_single_prompt(
@@ -34,7 +33,7 @@ class PrivacyReviewAssistantGroup:
             )
         else:
             threat_modeling_assistant = setup_xml_threat_model_reviewer_multi_prompt(
-                self.llm_config, context, state
+                self.llm_config, context, state, typing_capability
             )
         visualizer_agent = self.setup_visualizer_assistant(context, state, user_agent)
         group = GroupChat(
@@ -62,7 +61,7 @@ class PrivacyReviewAssistantGroup:
         return group
 
     def setup_visualizer_assistant(
-        self, context: TurnContext, state: AppTurnState, _user_agent: Agent
+        self, context: ChatContext, state: ConversationState, _user_agent: Agent
     ) -> Agent:
         visualizer_assistant = AssistantAgent(
             name="Visualizer",

@@ -8,6 +8,7 @@ Description: initialize the app and listen for `message` activitys
 from typing import Dict
 import sys
 import traceback
+from autogen import GroupChat, Agent
 from botbuilder.schema import Activity, ActivityTypes
 
 from botbuilder.core import TurnContext, MemoryStorage, InvokeResponse
@@ -22,6 +23,7 @@ from teams.teams_attachment_downloader.teams_attachment_downloader_options impor
     TeamsAttachmentDownloaderOptions,
 )
 from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
+from autogen_utils import AppTurnStateConversationState, TypingCapability, TurnChatContext
 
 # from botbuilder.azure import BlobStorage, BlobStorageSettings
 from privacy_review_assistant_group import PrivacyReviewAssistantGroup
@@ -51,6 +53,13 @@ storage = (
 
 threat_model_reviewer_group = PrivacyReviewAssistantGroup(llm_config=llm_config)
 
+def bot_group_chat_builder(
+        context: TurnContext, state: AppTurnState, user_agent: Agent
+    ) -> GroupChat:
+    typing_capability = TypingCapability(context)
+    return threat_model_reviewer_group.group_chat_builder(TurnChatContext(context), 
+                                                          AppTurnStateConversationState(state), user_agent, typing_capability)
+
 adapter = TeamsAdapter(config)
 downloader = TeamsAttachmentDownloader(
     TeamsAttachmentDownloaderOptions(config.APP_ID, adapter)
@@ -60,10 +69,10 @@ downloader = TeamsAttachmentDownloader(
 def message_builder(context: TurnContext, state: AppTurnState) -> str:
     if context.activity.text:
         return context.activity.text
-    if get_threat_model_xml_file(state) or get_threat_model_image_file(state):
+    conversation_state = AppTurnStateConversationState(state)
+    if get_threat_model_xml_file(conversation_state) or get_threat_model_image_file(conversation_state):
         return "Please evaluate this threat model file"
     return "Hi"
-
 
 app = Application[AppTurnState](
     ApplicationOptions(
@@ -73,7 +82,7 @@ app = Application[AppTurnState](
         ai=AIOptions(
             planner=AutoGenPlanner(
                 llm_config=llm_config,
-                build_group_chat=threat_model_reviewer_group.group_chat_builder,
+                build_group_chat=bot_group_chat_builder,
                 message_builder=message_builder,
             )
         ),
