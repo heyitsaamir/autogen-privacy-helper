@@ -4,8 +4,9 @@ import json
 from typing import List, Annotated, Dict, Tuple, Union, Literal
 from autogen import AssistantAgent, ConversableAgent, Agent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
-from autogen_utils import ImmediateExecutorCapability
+from autogen_utils import ImmediateExecutorCapability, TypingCapability
 from pydantic import BaseModel
+
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
 from Spec import Spec, load_specs_from_json
 
