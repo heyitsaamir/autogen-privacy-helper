@@ -55,6 +55,7 @@ class TypingCapability(StoppableAgentCapability):
         agent.register_hook("process_all_messages_before_reply", self._stop_typing)
 
     async def _send_typing(self, self2, messages, sender, config):
+        self.typing.stop()
         await self.typing.start(self.context)
         return [False, None]
 
