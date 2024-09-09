@@ -8,7 +8,7 @@ from state import AppTurnState
 from botbuilder.schema import Activity, ActivityTypes, Attachment
 from abc import ABC, abstractmethod
 
-class StopableAgentCapability(AgentCapability, ABC):
+class StoppableAgentCapability(AgentCapability, ABC):
     @abstractmethod
     def stop(self):
         pass
@@ -44,7 +44,7 @@ class ImmediateExecutorCapability(AgentCapability):
             return res.get("content") if isinstance(res, dict) else "Answered"
         return message
 
-class TypingCapability(StopableAgentCapability):
+class TypingCapability(StoppableAgentCapability):
     def __init__(self, context: TurnContext):
         self.typing = TeamsTyping()
         self.context = context

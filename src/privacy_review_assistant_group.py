@@ -12,14 +12,14 @@ from xml_threat_model_reviewer2 import (
 )
 
 from conversation_state import ConversationState, ChatContext
-from autogen_utils import StopableAgentCapability
+from autogen_utils import StoppableAgentCapability
 
 class PrivacyReviewAssistantGroup:
     def __init__(self, llm_config):
         self.llm_config = llm_config
 
     def group_chat_builder(
-        self, context: ChatContext, state: ConversationState, user_agent: Agent, typing_capability: Optional[StopableAgentCapability] = None
+        self, context: ChatContext, state: ConversationState, user_agent: Agent, typing_capability: Optional[StoppableAgentCapability] = None
     ) -> GroupChat:
         threat_model_evaluator_type = state.get_threat_model_evaluator_type()
         rag_assistant = setup_rag_assistant(self.llm_config)

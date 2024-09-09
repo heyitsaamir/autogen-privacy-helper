@@ -25,7 +25,7 @@ class TerminateAgent(ConversableAgent):
         # Always respond with "terminate"
         return {"content": "terminate"}
 
-def process_file(input_file, evaluation_type, output_image_file, output_result_text_file):
+async def process_file(input_file, evaluation_type, output_image_file, output_result_text_file):
     config = Config()
     llm_config = config.build_llm_config()
 
@@ -55,9 +55,9 @@ def process_file(input_file, evaluation_type, output_image_file, output_result_t
     groupchat = threat_model_reviewer_group.group_chat_builder(context, state, terminating_agent)
     manager = GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
-    chat_result = asyncio.run(terminating_agent.a_initiate_chat(
+    chat_result = await terminating_agent.a_initiate_chat(
         recipient=manager, message="Please validate this threat model.", clear_history=False
-    ))
+    )
     print(context.get_content())
     first_item = context.get_content()[0]
     content_url = first_item.get_content_url()
@@ -88,4 +88,4 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    process_file(args.input_file, args.evaluation_type, args.output_image_file, args.output_result_text_file)
+    asyncio.run(process_file(args.input_file, args.evaluation_type, args.output_image_file, args.output_result_text_file))

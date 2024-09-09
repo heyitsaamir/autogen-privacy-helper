@@ -23,7 +23,6 @@ class MessageWithAttachments(Message):
 class PredictedSayCommandWithAttachments(PredictedSayCommand):
     response: MessageWithAttachments
 
-
 class AutoGenPlanner(Planner):
     def __init__(
         self,
@@ -47,7 +46,6 @@ class AutoGenPlanner(Planner):
             system_message="A human admin. This agent is a proxy for the user. This agent can help answer questions too.",
             llm_config=self.llm_config,
         )
-
         groupchat = self.build_group_chat(context, state, user_proxy)
         if groupchat is None:
             return Plan(commands=[])
