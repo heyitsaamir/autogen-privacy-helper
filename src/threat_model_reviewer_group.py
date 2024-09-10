@@ -4,9 +4,7 @@ from autogen.agentchat.contrib.multimodal_conversable_agent import (
     MultimodalConversableAgent,
 )
 
-from botbuilder.core import TurnContext
-
-from state import AppTurnState
+from conversation_state import ConversationState, ChatContext
 from threat_model_visualizer import ThreatModelImageAddToMessageCapability
 
 
@@ -25,7 +23,7 @@ class ThreatModelReviewerGroup:
         self.threat_model_spec = threat_model_spec
 
     def group_chat_builder(
-        self, context: TurnContext, state: AppTurnState, user_agent: Agent
+        self, context: ChatContext, state: ConversationState, user_agent: Agent
     ) -> GroupChat:
         group_chat_agents = [user_agent]
         questioner_agent = AssistantAgent(
