@@ -3,7 +3,16 @@ description: 'Deploy Docker image to Azure Web App'
 inputs:
   CREDS:
     description: 'Azure credentials'
-    required: true
+    required: false
+  AZURE_CLIENT_ID:
+    description: 'Azure Client ID'
+    required: false
+  AZURE_TENANT_ID:
+    description: 'Azure Tenant ID'
+    required: false
+  AZURE_SUBSCRIPTION_ID:
+    description: 'Azure Subscription ID'
+    required: false
   WEBAPP_NAME:
     description: 'Web App name'
     required: true
@@ -19,11 +28,25 @@ runs:
     - name: Lowercase the repo name
       shell: bash
       run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+    - name: Set creds provided flag
+      id: set-creds-flag
+      shell: bash
+      run: echo "CREDS_PROVIDED=${{ inputs.CREDS != '' }}" >> $GITHUB_ENV
       
-    - name: Login to Azure
+    - name: Login to Azure with creds
+      if: env.CREDS_PROVIDED == 'true'
       uses: azure/login@v1
       with:
         creds: ${{ inputs.CREDS }}
+
+    - name: Login to Azure with client-id, tenant-id, and subscription-id
+      if: env.CREDS_PROVIDED == 'false'
+      uses: azure/login@v1
+      with:
+        client-id: ${{ inputs.AZURE_CLIENT_ID }}
+        tenant-id: ${{ inputs.AZURE_TENANT_ID }}
+        subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
 
     - name: 'Deploy'
       uses: azure/webapps-deploy@v2
