@@ -10,7 +10,7 @@ from .GenericTrustBorderBoundary import GenericTrustBorderBoundary
 from .GenericTrustLineBoundary import GenericTrustLineBoundary
 from .GenericDataStore import GenericDataStore
 from .GenericExternalInteractor import GenericExternalInteractor
-
+from .bezier_utils import is_on_inner_side_of_bezier
 
 def build_tag(schema, tag):
     return f"{schema}{tag}"
@@ -79,6 +79,62 @@ def get_element_name(shape):
     name = any_type_properties[1][2].text
     return name if name else ""
 
+def is_on_same_side(x1, y1, x2, y2, line_x1, line_y1, line_x2, line_y2):
+    def sign(x, y, line_x1, line_y1, line_x2, line_y2):
+        return (x - line_x2) * (line_y1 - line_y2) - (line_x1 - line_x2) * (y - line_y2)
+
+    d1 = sign(x1, y1, line_x1, line_y1, line_x2, line_y2)
+    d2 = sign(x2, y2, line_x1, line_y1, line_x2, line_y2)
+
+    return d1 * d2 >= 0
+
+import math
+
+def solve_quadratic(a, b, c):
+    """Solves a quadratic equation a*t^2 + b*t + c = 0 and returns real roots."""
+    discriminant = b**2 - 4 * a * c
+    if discriminant < 0:
+        return []  # No real solutions
+    elif discriminant == 0:
+        return [-b / (2 * a)]  # One real solution
+    else:
+        sqrt_discriminant = math.sqrt(discriminant)
+        t1 = (-b + sqrt_discriminant) / (2 * a)
+        t2 = (-b - sqrt_discriminant) / (2 * a)
+        return [t1, t2]  # Two real solutions
+    
+def find_t_for_x_or_y(x_p, y_p, sourceX, sourceY, controlX, controlY, targetX, targetY, check_for_x=True):
+    """
+    Finds the t values for which the Bezier curve has the same x or y coordinate as the given point.
+
+    Parameters:
+    x_p, y_p: Coordinates of the point.
+    sourceX, sourceY: Source point of the Bezier curve.
+    controlX, controlY: Control point of the Bezier curve.
+    targetX, targetY: Target point of the Bezier curve.
+    check_for_x: If True, solve for x. If False, solve for y.
+
+    Returns:
+    A list of valid t values in the range [0, 1].
+    """
+    if check_for_x:
+        # Quadratic coefficients for x
+        a = sourceX - 2 * controlX + targetX
+        b = -2 * sourceX + 2 * controlX
+        c = sourceX - x_p
+    else:
+        # Quadratic coefficients for y
+        a = sourceY - 2 * controlY + targetY
+        b = -2 * sourceY + 2 * controlY
+        c = sourceY - y_p
+    
+    # Solve the quadratic equation
+    t_values = solve_quadratic(a, b, c)
+
+    # Filter valid t values (0 <= t <= 1)
+    valid_t_values = [t for t in t_values if 0 <= t <= 1]
+
+    return valid_t_values
 
 def is_point_in(x, y, shape):
     return (
@@ -136,6 +192,29 @@ def set_curve_nodes(nodes, curves):
             if curve.sourceNode is not None and curve.targetNode is not None:
                 break
 
+def is_node_in_trust_line_boundary(node, trust_line_boundary):
+    corners = [
+        (node.left, node.top),
+        (node.left + node.width, node.top),
+        (node.left, node.top + node.height),
+        (node.left + node.width, node.top + node.height),
+    ]
+    for x, y in corners:
+        if not is_on_inner_side_of_bezier(
+            x, y,
+            trust_line_boundary.sourceX, trust_line_boundary.sourceY,
+            trust_line_boundary.handleX, trust_line_boundary.handleY,
+            trust_line_boundary.targetX, trust_line_boundary.targetY
+        ):
+            return False
+    return True
+
+def set_trust_line_boundaries(nodes, trust_line_boundaries):
+    for trust_line_boundary in trust_line_boundaries:
+        for node in nodes:
+            if is_node_in_trust_line_boundary(node, trust_line_boundary):
+                node.line_boundaries.append(trust_line_boundary)
+            
 
 class ThreatModel:
     key_label_map: Key_Label_Map
@@ -297,6 +376,7 @@ class ThreatModel:
         self.key_label_map = key_label_map
         set_groups(self.nodes, self.boundaries)
         set_curve_nodes(self.nodes, self.curves)
+        set_trust_line_boundaries(self.nodes, self.trust_line_boundaries)
 
     def generate_custom_key(
         self,
@@ -359,7 +439,7 @@ class ThreatModel:
 
     def get_node_data(self):
         return [
-            {"name": node.name, "has_boundary": node.group is not None}
+            {"name": node.name, "has_boundary": node.group is not None or len(node.line_boundaries) > 0}
             for node in self.nodes
         ]
 

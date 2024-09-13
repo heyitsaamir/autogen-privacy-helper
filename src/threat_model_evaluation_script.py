@@ -58,7 +58,6 @@ async def process_file(input_file, evaluation_type, output_image_file, output_re
     chat_result = await terminating_agent.a_initiate_chat(
         recipient=manager, message="Please validate this threat model.", clear_history=False
     )
-    print(context.get_content())
     first_item = context.get_content()[0]
     content_url = first_item.get_content_url()
     image_bytes = data_uri_to_bytes(content_url)
