@@ -10,7 +10,7 @@ from .GenericTrustBorderBoundary import GenericTrustBorderBoundary
 from .GenericTrustLineBoundary import GenericTrustLineBoundary
 from .GenericDataStore import GenericDataStore
 from .GenericExternalInteractor import GenericExternalInteractor
-
+from .bezier_utils import is_on_inner_side_of_bezier
 
 def build_tag(schema, tag):
     return f"{schema}{tag}"
@@ -79,7 +79,6 @@ def get_element_name(shape):
     name = any_type_properties[1][2].text
     return name if name else ""
 
-
 def is_point_in(x, y, shape):
     return (
         shape.left <= x
@@ -136,6 +135,29 @@ def set_curve_nodes(nodes, curves):
             if curve.sourceNode is not None and curve.targetNode is not None:
                 break
 
+def is_node_in_trust_line_boundary(node, trust_line_boundary):
+    corners = [
+        (node.left, node.top),
+        (node.left + node.width, node.top),
+        (node.left, node.top + node.height),
+        (node.left + node.width, node.top + node.height),
+    ]
+    for x, y in corners:
+        if not is_on_inner_side_of_bezier(
+            x, y,
+            trust_line_boundary.sourceX, trust_line_boundary.sourceY,
+            trust_line_boundary.handleX, trust_line_boundary.handleY,
+            trust_line_boundary.targetX, trust_line_boundary.targetY
+        ):
+            return False
+    return True
+
+def set_trust_line_boundaries(nodes, trust_line_boundaries):
+    for trust_line_boundary in trust_line_boundaries:
+        for node in nodes:
+            if is_node_in_trust_line_boundary(node, trust_line_boundary):
+                node.line_boundaries.append(trust_line_boundary)
+            
 
 class ThreatModel:
     key_label_map: Key_Label_Map
@@ -297,6 +319,7 @@ class ThreatModel:
         self.key_label_map = key_label_map
         set_groups(self.nodes, self.boundaries)
         set_curve_nodes(self.nodes, self.curves)
+        set_trust_line_boundaries(self.nodes, self.trust_line_boundaries)
 
     def generate_custom_key(
         self,
@@ -359,7 +382,7 @@ class ThreatModel:
 
     def get_node_data(self):
         return [
-            {"name": node.name, "has_boundary": node.group is not None}
+            {"name": node.name, "has_boundary": node.group is not None or len(node.line_boundaries) > 0}
             for node in self.nodes
         ]
 

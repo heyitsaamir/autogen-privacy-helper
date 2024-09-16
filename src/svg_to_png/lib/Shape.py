@@ -28,6 +28,7 @@ class Shape:
         self.top = int(top) + 5
         self.icons = icons
         self.group = None
+        self.line_boundaries = []
 
     # Gets whether the text should be centered (normal for nodes, not for labels)
     def is_text_centered(self):
