@@ -7,6 +7,9 @@ inputs:
   REGISTRY_USERNAME:
     description: 'Registry username'
     required: false
+  REGISTRY_NAME:
+    description: 'Registry name'
+    required: false
   REGISTRY_PASSWORD:
     description: 'Registry password'
     required: false
@@ -45,14 +48,14 @@ runs:
       uses: azure/login@v1
       if: env.CREDS_PROVIDED == 'false'
       with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID_GITHUB_AUTH }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        client-id: ${{ inputs.AZURE_CLIENT_ID_GITHUB_AUTH }}
+        tenant-id: ${{ inputs.AZURE_TENANT_ID }}
+        subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
       
     - name: 'Login to ACR via OIDC'
       shell: bash
       if: env.CREDS_PROVIDED == 'false'
-      run: az acr login --name <registry-name>
+      run: az acr login --name {{ $inputs.REGISTRY_NAME }}
 
     - name: Login to Registry Password
       uses: azure/docker-login@v1
