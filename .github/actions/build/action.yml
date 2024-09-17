@@ -6,10 +6,19 @@ inputs:
     required: true
   REGISTRY_USERNAME:
     description: 'Registry username'
-    required: true
+    required: false
   REGISTRY_PASSWORD:
     description: 'Registry password'
-    required: true
+    required: false
+  AZURE_CLIENT_ID:
+    description: 'Azure Client ID'
+    required: false
+  AZURE_TENANT_ID:
+    description: 'Azure Tenant ID'
+    required: false
+  AZURE_SUBSCRIPTION_ID:
+    description: 'Azure Subscription ID'
+    required: false
 runs:
   using: 'composite'
   steps:
@@ -19,7 +28,35 @@ runs:
       shell: bash
       run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
-    - uses: azure/docker-login@v1
+    - name: Set creds provided flag
+      id: set-creds-flag
+      shell: bash
+      run: echo "CREDS_PROVIDED=${{ inputs.REGISTRY_PASSWORD != '' }}" >> $GITHUB_ENV
+
+    - name: Login to Azure with client-id, tenant-id, and subscription-id
+      if: env.CREDS_PROVIDED == 'false'
+      uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.AZURE_CLIENT_ID }}
+        tenant-id: ${{ inputs.AZURE_TENANT_ID }}
+        subscription-id: ${{ inputs.AZURE_SUBSCRIPTION_ID }}
+
+    - name: 'Az CLI login'
+      uses: azure/login@v1
+      if: env.CREDS_PROVIDED == 'false'
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID_GITHUB_AUTH }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+    - name: 'Login to ACR via OIDC'
+      shell: bash
+      if: env.CREDS_PROVIDED == 'false'
+      run: az acr login --name <registry-name>
+
+    - name: Login to Registry Password
+      uses: azure/docker-login@v1
+      if: env.CREDS_PROVIDED == 'true'
       with:
         login-server: ${{ inputs.REGISTRY_LOGIN_SERVER }}
         username: ${{ inputs.REGISTRY_USERNAME }}
