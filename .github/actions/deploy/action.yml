@@ -36,13 +36,13 @@ runs:
       
     - name: Login to Azure with creds
       if: env.CREDS_PROVIDED == 'true'
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         creds: ${{ inputs.CREDS }}
 
     - name: Login to Azure with client-id, tenant-id, and subscription-id
       if: env.CREDS_PROVIDED == 'false'
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         client-id: ${{ inputs.AZURE_CLIENT_ID }}
         tenant-id: ${{ inputs.AZURE_TENANT_ID }}
