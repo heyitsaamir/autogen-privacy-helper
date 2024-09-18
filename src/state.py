@@ -3,11 +3,11 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from typing import Optional, List, Dict, Union, Literal
+from datetime import datetime
+from typing import Dict, List, Literal, Optional, Union
 
 from botbuilder.core import Storage, TurnContext
 from teams.state import ConversationState, TempState, TurnState, UserState
-from datetime import datetime
 
 
 class AppConversationState(ConversationState):
@@ -17,7 +17,7 @@ class AppConversationState(ConversationState):
     started_waiting_for_user_input_at: Optional[Union[datetime, str]] = None
     spec_url: Optional[str] = None
     threat_model_evaluator: Union[
-        Literal["visual"], Literal["xml_single_prompt"], Literal["xml_multi_prompt"]
+        Literal["visual"], Literal["xml_single_prompt"], Literal["xml_multi_prompt"], Literal["no_autogen"]
     ]
     activity_id: Optional[str] = None
 

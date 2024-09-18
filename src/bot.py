@@ -5,16 +5,26 @@ Licensed under the MIT License.
 Description: initialize the app and listen for `message` activitys
 """
 
-from typing import Dict
 import sys
 import traceback
-from autogen import GroupChat, Agent
-from botbuilder.schema import Activity, ActivityTypes
+from typing import Dict
 
-from botbuilder.core import TurnContext, MemoryStorage, InvokeResponse
+from autogen import Agent, GroupChat
+from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
+from autogen_utils import (
+    AppTurnStateConversationState,
+    TurnChatContext,
+    TypingCapability,
+)
+from botbuilder.core import InvokeResponse, MemoryStorage, TurnContext
+from botbuilder.schema import Activity, ActivityTypes
+from config import Config
+from cosmos_memory_storage import CosmosDbPartitionedStorage
+from privacy_review_assistant_group import PrivacyReviewAssistantGroup
+from state import AppTurnState
 from teams import Application, ApplicationOptions, TeamsAdapter
 from teams.ai import AIOptions
-from teams.ai.actions import ActionTypes, ActionTurnContext
+from teams.ai.actions import ActionTurnContext, ActionTypes
 from teams.feedback_loop_data import FeedbackLoopData
 from teams.teams_attachment_downloader.teams_attachment_downloader import (
     TeamsAttachmentDownloader,
@@ -22,15 +32,6 @@ from teams.teams_attachment_downloader.teams_attachment_downloader import (
 from teams.teams_attachment_downloader.teams_attachment_downloader_options import (
     TeamsAttachmentDownloaderOptions,
 )
-from autogen_planner import AutoGenPlanner, PredictedSayCommandWithAttachments
-from autogen_utils import AppTurnStateConversationState, TypingCapability, TurnChatContext
-
-# from botbuilder.azure import BlobStorage, BlobStorageSettings
-from privacy_review_assistant_group import PrivacyReviewAssistantGroup
-
-from config import Config
-from cosmos_memory_storage import CosmosDbPartitionedStorage
-from state import AppTurnState
 from threat_model_file_utils import (
     get_threat_model_image_file,
     get_threat_model_xml_file,
@@ -38,11 +39,6 @@ from threat_model_file_utils import (
 
 config = Config()
 llm_config = config.build_llm_config()
-
-if config.OPENAI_KEY is None and config.AZURE_OPENAI_KEY is None:
-    raise RuntimeError(
-        "Unable to build LLM config - please check that OPENAI_KEY or AZURE_OPENAI_KEY is set."
-    )
 
 cosmos_config = config.build_cosmos_db_config()
 storage = (
@@ -153,6 +149,13 @@ async def set_to_xml_multi_prompt(context: TurnContext, state: AppTurnState):
     state.conversation.threat_model_evaluator = "xml_multi_prompt"
     await state.save(context)
     await context.send_activity("Ready to use multi prompt XML evaluator")
+    return True
+
+@app.message("/useNoAutogen")
+async def set_to_no_autogen(context: TurnContext, state: AppTurnState):
+    state.conversation.threat_model_evaluator = "no_autogen"
+    await state.save(context)
+    await context.send_activity("Ready to skip autogen evaluator")
     return True
 
 

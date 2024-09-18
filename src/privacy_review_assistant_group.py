@@ -1,18 +1,21 @@
-from autogen import AssistantAgent, GroupChat, Agent
-
-from rag_agents import setup_rag_assistant
-from visualizer_agent import setup_visualizer_agent
-from threat_model_visualizer import ThreatModelImageVisualizerCapability
 from typing import Optional
+
+from autogen import Agent, AssistantAgent, GroupChat
+from autogen_utils import StoppableAgentCapability
+from conversation_state import ChatContext, ConversationState
+from rag_agents import setup_rag_assistant
+from threat_model_visualizer import ThreatModelImageVisualizerCapability
+from visualizer_agent import setup_visualizer_agent
 from xml_threat_model_reviewer import (
     setup_xml_threat_model_reviewer as setup_xml_threat_model_reviewer_single_prompt,
 )
 from xml_threat_model_reviewer2 import (
     setup_xml_threat_model_reviewer as setup_xml_threat_model_reviewer_multi_prompt,
 )
+from xml_threat_model_reviewer_no_autogen import (
+    setup_xml_threat_model_reviewer as setup_xml_threat_model_reviewer_no_autogen,
+)
 
-from conversation_state import ConversationState, ChatContext
-from autogen_utils import StoppableAgentCapability
 
 class PrivacyReviewAssistantGroup:
     def __init__(self, llm_config):
@@ -29,6 +32,10 @@ class PrivacyReviewAssistantGroup:
             )
         elif threat_model_evaluator_type == "visual":
             threat_modeling_assistant = setup_visualizer_agent(
+                self.llm_config, context, state
+            )
+        elif threat_model_evaluator_type == "no_autogen":
+            threat_modeling_assistant = setup_xml_threat_model_reviewer_no_autogen(
                 self.llm_config, context, state
             )
         else:

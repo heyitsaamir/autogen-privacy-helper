@@ -1,17 +1,18 @@
 import json
 import re
-from typing import List, Callable, Optional, Union
-from datetime import datetime
 from dataclasses import dataclass
-from dataclasses_json import dataclass_json
-from botbuilder.schema import Attachment
+from datetime import datetime
+from typing import Callable, List, Optional, Union
+
+from autogen import Agent, ChatResult, GroupChat, GroupChatManager, runtime_logging
 from botbuilder.core import CardFactory, TurnContext
-from teams.ai.prompts import Message
-from teams.ai.planners import Planner, Plan, PredictedSayCommand
-from autogen import Agent, GroupChat, GroupChatManager, ChatResult, runtime_logging
-from state import AppTurnState
-from teams_user_proxy import TeamsUserProxy
+from botbuilder.schema import Attachment
 from config import Config
+from dataclasses_json import dataclass_json
+from state import AppTurnState
+from teams.ai.planners import Plan, Planner, PredictedSayCommand
+from teams.ai.prompts import Message
+from teams_user_proxy import TeamsUserProxy
 
 
 @dataclass_json
@@ -37,10 +38,13 @@ class AutoGenPlanner(Planner):
         self.message_builder = message_builder
         super().__init__()
 
-    async def begin_task(self, context, state: AppTurnState):
+    async def begin_task(self, context: TurnContext, state: AppTurnState):
         return await self.continue_task(context, state)
 
-    async def continue_task(self, context, state: AppTurnState):
+    async def continue_task(self, context: TurnContext, state: AppTurnState):
+        return await self.run_with_autogen(context, state)
+        
+    async def run_with_autogen(self, context: TurnContext, state: AppTurnState):
         user_proxy = TeamsUserProxy(
             name="User",
             system_message="A human admin. This agent is a proxy for the user. This agent can help answer questions too.",
@@ -95,6 +99,7 @@ class AutoGenPlanner(Planner):
         )
 
         if Config.ENABLE_RUNTIME_LOGGING:
+            print('Logging is enabled')
             runtime_logging.start()
 
         chat_result = await user_proxy.a_initiate_chat(
@@ -156,7 +161,6 @@ class AutoGenPlanner(Planner):
                 )
             ]
         )
-
 
 def create_chat_history_ac(message: ChatResult) -> Attachment:
     facts = []

@@ -1,12 +1,14 @@
 import argparse
 import asyncio
-from config import Config
-from privacy_review_assistant_group import PrivacyReviewAssistantGroup
-from conversation_state import LocalChatContext, LocalConversationState
-from autogen import GroupChatManager, ConversableAgent
-from typing import Dict, Optional, Union, Literal
 import base64
 import io
+from typing import Dict, Literal, Optional, Union
+
+from autogen import ConversableAgent, GroupChatManager
+from config import Config
+from conversation_state import LocalChatContext, LocalConversationState
+from privacy_review_assistant_group import PrivacyReviewAssistantGroup
+
 
 def data_uri_to_bytes(data_uri) -> bytes:
     # Strip the data URI prefix
@@ -80,7 +82,7 @@ if __name__ == "__main__":
     parser.add_argument("output_result_text_file", help="Path to the output result text file")
     parser.add_argument(
         "evaluation_type",
-        choices=["xml_single_prompt", "xml_multi_prompt", "visual"],
+        choices=["xml_single_prompt", "xml_multi_prompt", "visual", "no_autogen"],
         default="xml_multi_prompt",
         help="Type of evaluation (default: xml_multi_prompt)",
     )
