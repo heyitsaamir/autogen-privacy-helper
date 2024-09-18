@@ -1,14 +1,18 @@
-import asyncio
-import os
 import json
-from typing import List, Annotated, Dict, Tuple, Union, Literal
-from autogen import AssistantAgent, ConversableAgent, Agent
-from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
-from autogen_utils import ImmediateExecutorCapability, TypingCapability
-from pydantic import BaseModel
+import os
+from typing import Annotated, Dict, List, Literal, Tuple, Union
 
+from autogen import Agent, AssistantAgent, ConversableAgent
+from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
+from autogen_utils import ImmediateExecutorCapability
+from models import (
+    Spec,
+    SpecAnswer,
+    build_adaptive_card,
+    build_container_for_answer,
+    load_specs_from_json,
+)
 from xml_threat_model_reviewer import XMLThreatModelImageAddToMessageCapability
-from Spec import Spec, load_specs_from_json
 
 folder = os.path.dirname(os.path.abspath(__file__))
 specs = load_specs_from_json(f"{folder}/specs.json")
@@ -17,29 +21,6 @@ specs = load_specs_from_json(f"{folder}/specs.json")
 def build_instruction(spec: Spec):
     return f"""Now, based on the given details of the spec model, see if it fulfills this criteria\nSpec id {spec.id}\n{spec.instructions_to_solve}
 """
-
-
-tag_with_headers = {"green": "✅", "red": "❌", "yellow": "⚠️"}
-
-
-class SpecAnswer(BaseModel):
-    spec_id: Annotated[int, "The spec id to answer"]
-    detailed_answer: Annotated[
-        str,
-        "Does the threat model meet the spec criteria? Why or why not? Be helpful and specific.",
-    ]
-    steps_to_improve: Annotated[
-        str,
-        "What are exact steps to improve the threat model to meet the spec criteria? Use 'None' if no steps to improve",
-    ]
-    tag: Annotated[
-        Union[
-            Annotated[Literal["green"], "Spec criteria is met"],
-            Annotated[Literal["red"], "Items needs to be fixed to meet criteria"],
-            Annotated[Literal["yellow"], "Criteria is met but can be improved"],
-        ],
-        "The tag of the spec answer",
-    ]
 
 class EvaluateSpecCapability(AgentCapability):
     def __init__(self, specs: List[Spec]):
@@ -58,8 +39,6 @@ class EvaluateSpecCapability(AgentCapability):
         agent._is_termination_msg = new_term_msg
 
     async def _send_question(self, self2, messages, sender, config):
-        # wait for 2 seconds
-        await asyncio.sleep(2)
         if self.spec_index < len(self.specs):
             print(f"Sending question for spec {self.specs[self.spec_index].id}")
             message = f"{build_instruction(self.specs[self.spec_index])}"
@@ -198,80 +177,3 @@ Answer the questions as clearly and concisely as possible. Always use add_answer
 
     return assistant
 
-
-def build_container_for_answer(spec: Spec, spec_answer: SpecAnswer):
-    answer_items = [
-        {
-            "type": "TextBlock",
-            "text": spec_answer.detailed_answer,
-            "wrap": True,
-        }
-    ]
-    if spec_answer.steps_to_improve != "None" and spec_answer.steps_to_improve:
-        answer_items.append(
-            {
-                "type": "TextBlock",
-                "text": "Steps to improve:",
-                "wrap": True,
-                "weight": "Bolder",
-            }
-        )
-        answer_items.append(
-            {
-                "type": "TextBlock",
-                "text": spec_answer.steps_to_improve,
-                "wrap": True,
-            }
-        )
-    return {
-        "type": "Container",
-        "items": [
-            {
-                "type": "TextBlock",
-                "text": spec.spec,
-                "wrap": True,
-                "weight": "Bolder",
-            },
-            {
-                "type": "ColumnSet",
-                "columns": [
-                    {
-                        "type": "Column",
-                        "width": "auto",
-                        "items": [
-                            {
-                                "type": "TextBlock",
-                                "text": tag_with_headers[spec_answer.tag],
-                                "wrap": True,
-                            }
-                        ],
-                    },
-                    {
-                        "type": "Column",
-                        "width": "stretch",
-                        "items": answer_items,
-                    },
-                ],
-            },
-        ],
-        "separator": True,
-    }
-
-
-def build_adaptive_card(spec_answer_containers: List[Dict]):
-    body = [
-        {
-            "type": "TextBlock",
-            "text": "Threat model review",
-            "wrap": True,
-            "weight": "Bolder",
-            "style": "heading",
-        },
-        *spec_answer_containers,
-    ]
-    return {
-        "type": "AdaptiveCard",
-        "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.5",
-        "body": body,
-    }

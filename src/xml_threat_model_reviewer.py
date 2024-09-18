@@ -1,18 +1,16 @@
 import os
-from PIL import Image
-from autogen.agentchat import AssistantAgent
-from autogen.agentchat.contrib.multimodal_conversable_agent import ConversableAgent
-from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
-from autogen.agentchat.contrib.img_utils import pil_to_data_uri
-
-from Spec import Spec, load_specs_from_json
-from svg_to_png.svg_to_png import load_threat_model
 from asyncio import ensure_future
 
+from autogen.agentchat import AssistantAgent
+from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
+from autogen.agentchat.contrib.img_utils import pil_to_data_uri
+from autogen.agentchat.contrib.multimodal_conversable_agent import ConversableAgent
+from conversation_state import ChatContext, ConversationState
+from models import load_specs_from_json
+from PIL import Image
+from svg_to_png.svg_to_png import load_threat_model
 from threat_model_file_utils import get_threat_model_xml_file
 from threat_model_visualizer import ThreatModelImageVisualizer
-
-from conversation_state import ConversationState, ChatContext
 
 
 class ThreatModelDataExtractor(ThreatModelImageVisualizer):
