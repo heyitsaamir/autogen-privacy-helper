@@ -55,7 +55,7 @@ runs:
     - name: 'Login to ACR via OIDC'
       shell: bash
       if: env.CREDS_PROVIDED == 'false'
-      run: az acr login --name {{ $inputs.REGISTRY_NAME }}
+      run: az acr login --name {{ inputs.REGISTRY_NAME }}
 
     - name: Login to Registry Password
       uses: azure/docker-login@v1
