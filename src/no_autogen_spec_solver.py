@@ -80,12 +80,12 @@ Spec id {spec.id}
                 {
                     "role": "system",
                     "content": _SYSTEM_MESSAGE,
-                    },
+                },
                 {
                     "role": "user",
                     "content": threat_model_details,
                 },
-                {"role": "assistant", "content": spec_question},
+                {"role": "user", "content": spec_question},
             ],
         )
 
