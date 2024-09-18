@@ -5,7 +5,7 @@ from autogen.agentchat.contrib.multimodal_conversable_agent import ConversableAg
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.img_utils import pil_to_data_uri
 
-from Spec import load_specs_from_json
+from Spec import Spec, load_specs_from_json
 from svg_to_png.svg_to_png import load_threat_model
 from asyncio import ensure_future
 
@@ -108,29 +108,18 @@ class XMLThreatModelImageAddToMessageCapability(
                     )
 
 
-folder = os.path.dirname(os.path.abspath(__file__))
-specs = load_specs_from_json(f"{folder}/specs.json")
-
-
 def setup_xml_threat_model_reviewer(
     llm_config,
     context: ChatContext,
     state: ConversationState,
-    threat_model_spec: str = """
-1. All nodes should be inside a boundary. Are there any nodes not in a boundary? To determine if a node is within a boundary in the node data for a node, has_boundary should be true. Do not tell the user of the has_boundary flag, however, just whether a node is not in a boundary.
-2. All labels should be numbered with sequential numbers. The labels themselves may not be in sequential order, but all numbers in the sequence must be there. For example, if you
-the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", this is valid, because all numbers between 1 and 3 are there, but if it were "1. FlowA" and second 
-"4. FlowB" and third, "2. FlowC" then this would be invalid, because 3 is missing.
-3. All nodes and labels should be tagged with [NEW] or [EXISTING] to denote which part of the DFD is to be reviewed.
-4. Validate a request and response for each node and that there is a label. If in the list of nodes with labels between them for two nodes either hasNode2ToNode1Curve or hasNode1ToNode2Curve are not true, say that there aren't curves in both directions between these nodes. Do not use strings like hasNode2ToNode1Curve in the response.
-5. Each storage node can have a tag like 30D that represents its retention. If no storage nodes have this tag issue a warning but this should not be a validation failure. If there is a tag that appears like it's a duration it should be in compact duration format. Only for [NEW] nodes
-6. Each label should have a string representing the type of data it passes. Therefore it should include one of the following: AC, CC, EUII, OII, SM PND, EUPI, SD, FB, AD PPD MSD.
-7. There should not be any JSON in any of the labels. Only tags should be in the labels.
-    """,
 ):
-    # threat_model_spec = ''
-    # for spec in specs:
-    #     threat_model_spec += f"#{spec.id}. {spec.spec}\n{spec.instructions_to_solve}\n\n"
+    folder = os.path.dirname(os.path.abspath(__file__))
+    specs = load_specs_from_json(f"{folder}/specs.json")
+    threat_model_spec = [
+        f"{count}. **{spec.spec}**: {spec.instructions_to_solve} {spec.improvement_hints}"
+        for count, spec in enumerate(specs, start=1)
+    ]
+    threat_model_spec = "\n".join(threat_model_spec)
 
     assistant = AssistantAgent(
         name="Threat_Model_Evaluator",
@@ -144,11 +133,19 @@ the labels are first "1. FlowA" and second "3. FlowB" and third, "2. FlowC", thi
             Please group the responses in three groups:
             1. **Needs to be addressed** for validation failures
             2. **Green** for items that are done correctly
-            3. **Warnings** for items that are not incorrect but are warnings
-                                                    
-            For any node that has newline characters like \n or \r please filter out these characters in your response. Also, filter out any JSON.""",
+            3. **Warnings** for items that are not incorrect but are warnings""",
         llm_config={"config_list": [llm_config], "timeout": 60, "temperature": 0},
     )
+    def modify_message(reply):
+        if isinstance(reply, str):
+            reply = reply.replace("\\n", "").replace("\\r", "")
+        return reply
+    
+    def assistant_hook(sender, message, recipient, silent):
+        modified = modify_message(message)
+        return modified
+    
+    assistant.register_hook("process_message_before_send", assistant_hook)
 
     capability = XMLThreatModelImageAddToMessageCapability(
         context, True, state=state, max_width=400
