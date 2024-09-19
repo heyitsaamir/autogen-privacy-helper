@@ -74,7 +74,7 @@ Spec id {spec.id}
 """
 
         result = await self.client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=self._model,
             response_model=SpecAnswer,
             messages=[
                 {
