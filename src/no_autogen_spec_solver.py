@@ -38,7 +38,7 @@ class ThreatModelValidator:
         elif llm_config.get("api_type") == "azure":
             logging.debug("Using Azure API key")
             self.client = instructor.from_openai(AzureOpenAI(
-                base_url=llm_config.get("base_url", ""),
+                azure_endpoint=llm_config.get("base_url", ""),
                 api_version=llm_config.get("api_version", ""),
                 azure_ad_token_provider=llm_config.get("azure_ad_token_provider"),
             ))
